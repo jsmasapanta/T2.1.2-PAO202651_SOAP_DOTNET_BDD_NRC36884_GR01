@@ -1,0 +1,37 @@
+@startuml DS_Ingresar_Sistema
+!include ../_estilo.iuml
+title Diagrama de secuencia — CU01 Iniciar sesión
+autonumber
+
+actor Empleado
+participant "vista\n(FormLogin / Login.cshtml /\nLoginPage)" as Vista
+participant "controlador" as Ctrl
+participant "servicio\nClienteEureka (Singleton)" as Proxy
+participant "ws\nWSEureka.svc" as WS
+participant "servicio\nEurekaServicio (Singleton)" as Neg
+participant "db\nConexionBD (Singleton)" as BD
+database "SQL Server\nEUREKABANK" as SQL
+
+Empleado -> Vista : usuario, clave, Ingresar
+Vista -> Ctrl : IniciarSesion(usuario, clave)
+Ctrl -> Proxy : Login(usuario, clave)
+Proxy -> WS : POST SOAP <login>
+WS -> Neg : Login(usuario, clave)
+Neg -> BD : AbrirConexion()
+BD --> Neg : SqlConnection
+Neg -> SQL : SELECT chr_emplcodigo, vch_emplclave ... FROM Empleado
+SQL --> Neg : fila del empleado
+alt clave correcta
+  Neg --> WS : Empleado
+  WS --> Proxy : <loginResult><Codigo>0012</Codigo>...
+  Proxy --> Ctrl : Empleado
+  Ctrl --> Vista : true
+  Vista --> Empleado : menú principal
+else usuario o clave incorrectos
+  Neg --> WS : null
+  WS --> Proxy : <loginResult i:nil="true"/>
+  Proxy --> Ctrl : null
+  Ctrl --> Vista : false
+  Vista --> Empleado : «Usuario o clave incorrectos» (intentos restantes)
+end
+@enduml

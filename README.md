@@ -192,7 +192,22 @@ El script crea el sitio **EUREKA** en el puerto **8087**, abre el firewall y mue
 | 10 | Transferencia | 00100001 → 00200001, 100 | Movimientos 009 y 008 con referencia cruzada |
 | 11 | Monedas distintas | 00100001 → 00100002 | "Solo se puede transferir entre cuentas de la misma moneda." |
 | 12 | Más de 2 decimales | 1.555 | "El importe admite como máximo 2 decimales." |
-| 13 | SQL Server apagado | cualquier operación | "No se pudo acceder a la base de datos EUREKABANK…" |
+| 13 | SQL Server apagado | cualquier operación | "No se pudo acceder a la base de datos EUREKABANK…" (comportamiento esperado; no se probó porque requiere detener el servicio de SQL Server) |
 | 14 | Servidor SOAP apagado | — | "No se pudo conectar con el servidor…" |
+| 15 | Página protegida (web) | `/Banco/Movimientos` sin sesión | Redirección al login |
 
 Para volver a los datos iniciales, ejecuta otra vez `03. BDD\crear_bdd.ps1`.
+
+## Documentación
+
+| Archivo | Contenido |
+|---|---|
+| `01. UML/01. ERS/ERS_EUREKABANK_SOAP_DOTNET_BDD_GR01.docx` | Especificación de requisitos (IEEE 830): 14 RF y 8 RNF |
+| `01. UML/02. ECUD/ECUD_EUREKABANK_SOAP_DOTNET_BDD_GR01.docx` | Casos de uso CU01–CU07 con sus diagramas de actividad y secuencia |
+| `05. DOCUMENTACIÓN/WS_EUREKABANK_SOAP_DOTNET_BDD_GR01.docx` | Manual técnico paso a paso, con el código y las capturas |
+| `05. DOCUMENTACIÓN/MANUAL_EUREKABANK_SOAP_DOTNET_BDD_GR01.pptx` | Presentación (16 diapositivas) |
+| `05. DOCUMENTACIÓN/capturas/` | Capturas reales de servidor, BDD, consola, escritorio y web |
+
+Al abrir el manual en Word, si el índice aparece vacío: clic derecho sobre él → **Actualizar campo**.
+
+Los documentos se generan con los scripts de `_herramientas/generador_documentos_eureka` (fuera de este repositorio). Faltan las capturas del móvil: con el celular conectado se toman con `adb exec-out screencap -p > archivo.png`, se guardan en `05. DOCUMENTACIÓN/capturas/CLIMOV` (`01_login.png`, `02_menu.png`, `03_movimientos.png`, `04_operacion.png`) y se vuelve a generar el manual.
