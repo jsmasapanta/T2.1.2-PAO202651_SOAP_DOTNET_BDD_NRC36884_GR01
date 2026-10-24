@@ -1,0 +1,65 @@
+@startuml DC_Clientes
+!include ../_estilo.iuml
+title Diagrama de clases — Clientes (MVC + Singleton), ejemplo: escritorio
+
+package "ec.edu.monster.vista" {
+  class FormLogin
+  class FormPrincipal
+  class PanelMovimientos
+  class PanelOperacion
+  class Tema <<static>>
+}
+
+package "ec.edu.monster.controlador" {
+  class ControladorEureka {
+    + Empleado : Empleado
+    + IniciarSesionAsync(usuario, clave) : Task<bool>
+    + ConsultarCuentaAsync(cuenta) : Task<Cuenta>
+    + TraerMovimientosAsync(cuenta) : Task<Movimiento[]>
+    + RegistrarAsync(tipo, cuenta, destino, importe) : Task<decimal>
+    + CerrarSesion()
+  }
+}
+
+package "ec.edu.monster.servicio" {
+  class ClienteEureka <<Singleton>> {
+    - {static} _instancia : Lazy<ClienteEureka>
+    + {static} Instancia : ClienteEureka
+    - _fabrica : ChannelFactory<IWSEureka>
+    - ClienteEureka()
+    - Invocar<T>(llamada) : T
+  }
+  interface IWSEureka <<copia del contrato>>
+  class ErrorServicioException
+}
+
+package "ec.edu.monster.modelo" {
+  class Empleado
+  class Cuenta
+  class Movimiento
+  enum TipoOperacion {
+    Deposito
+    Retiro
+    Transferencia
+  }
+}
+
+FormLogin --> ControladorEureka
+FormPrincipal --> ControladorEureka
+FormPrincipal *-- PanelMovimientos
+FormPrincipal *-- PanelOperacion
+PanelMovimientos --> ControladorEureka
+PanelOperacion --> ControladorEureka
+ControladorEureka --> ClienteEureka : Instancia
+ClienteEureka ..> IWSEureka : ChannelFactory
+ClienteEureka ..> ErrorServicioException
+ControladorEureka ..> Cuenta
+ControladorEureka ..> Movimiento
+ControladorEureka ..> TipoOperacion
+
+note bottom of ClienteEureka
+  Consola: igual (VistaConsola + ControladorConsola).
+  Web: ClienteEureka con AddSingleton en Program.cs.
+  Móvil: ClienteSoap.Instancia y ControladorEureka.Instancia.
+end note
+@enduml

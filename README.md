@@ -1,0 +1,198 @@
+# TG1.2 · EurekaBank — SOAP .NET con base de datos (SQL Server)
+
+Proyecto de **Arquitectura de Software (ESPE)**: un **servicio web SOAP** en .NET (WCF) que maneja las cuentas de ahorro de **EurekaBank** sobre **SQL Server**, y **cuatro clientes** que lo consumen: **consola, escritorio, web y móvil**.
+
+Operaciones: **consultar cuenta y movimientos, depósito, retiro y transferencia**. Cada operación queda grabada en la tabla `Movimiento` y actualiza el saldo de `Cuenta` dentro de una transacción.
+
+| | |
+|---|---|
+| **Usuario de la app** | `monster` / `monster` (tabla `Empleado`, código `0012`) |
+| **Login de SQL Server** | `monster` / `monster` (lo usa el servidor para conectarse) |
+| **Base de datos** | `EUREKABANK` en SQL Server local (`localhost`) |
+| **Servidor SOAP** | `http://localhost:8087/WSEureka.svc` (WSDL: `?wsdl`) |
+| **Cliente web** | `http://localhost:5087` |
+| **IDE** | Visual Studio 2022 Community |
+| **Paquetes** | `ec.edu.monster.db` · `modelo` · `servicio` · `ws` (servidor) y `modelo` · `vista` · `controlador` · `servicio` (clientes) |
+| **Patrones** | Singleton (`ConexionBD`, `EurekaServicio`, `ClienteEureka`) · MVC en los clientes |
+
+---
+
+## 1. Arquitectura
+
+```
+  CLICON (consola)  ───►  ┌──────────────────────────────────────┐
+  CLIESC (escritorio) ─►  │ IIS / IIS Express :8087              │
+  CLIWEB  :5087  ──────►  │ WSEureka.svc (WCF · SOAP 1.1)        │      ┌────────────────────┐
+  CLIMOV (Android) ────►  │  ec.edu.monster.ws       contrato    │      │ SQL Server         │
+                          │  ec.edu.monster.servicio EurekaServicio ──► │ EUREKABANK         │
+          SOAP / HTTP     │  ec.edu.monster.db       ConexionBD  │ ADO │ login monster      │
+                          └──────────────────────────────────────┘ .NET └────────────────────┘
+```
+
+- **Protocolo:** SOAP 1.1 sobre HTTP (`basicHttpBinding`). Namespace XML `http://espe.edu.ec/eureka/`.
+- **Errores:** el servidor responde un **SOAP Fault** con `ErrorServicio { Codigo, Mensaje }`:
+  `VALOR_INVALIDO` (formato), `REGLA_NEGOCIO` (saldo insuficiente, cuenta cancelada, monedas distintas…), `ERROR_BD` (SQL Server apagado). Cada cliente muestra el `Mensaje` en rojo.
+
+## 2. Estructura del repositorio
+
+```
+01. UML/03. DIAGRAMAS   casos de uso, actividad, secuencia, clases, arquitectura (.puml + .png)
+02. MER/                modelo conceptual, lógico y físico (.puml + .png)
+03. BDD/                01_Crea_BD.sql, 02_Carga_Datos.sql, 03_Crea_Login_monster.sql,
+                        04_Consultas_Prueba.sql y crear_bdd.ps1 (ejecuta todo)
+04. SERVIDOR/           EUREKA_SOAP_DOTNET_SERVIDOR (WCF .NET Framework 4.7.2) + publicar_iis.ps1
+04. CLICON/             EUREKA_SOAP_DOTNET_CLICON  (consola .NET Framework 4.7.2)
+04. CLIESC/             EUREKA_SOAP_DOTNET_CLIESC  (Windows Forms .NET Framework 4.7.2)
+04. CLIWEB/             EUREKA_SOAP_DOTNET_CLIWEB  (ASP.NET Core MVC .NET 8)
+04. CLIMOV/             EUREKA_SOAP_DOTNET_CLIMOV  (.NET MAUI Android .NET 9, sucesor de Xamarin)
+05. DOCUMENTACIÓN/      manual, presentación y capturas
+```
+
+## 3. Operaciones del servicio
+
+| Operación SOAP | Devuelve | Qué hace en la BDD |
+|---|---|---|
+| `login(usuario, clave)` | `Empleado` o `null` | Busca en `Empleado` (usuario sin distinguir mayúsculas, clave exacta) |
+| `consultarCuenta(cuenta)` | `Cuenta` | `Cuenta` + `Cliente` + `Moneda` + `Sucursal` |
+| `traerMovimientos(cuenta)` | lista de `Movimiento` | `Movimiento` + `TipoMovimiento`, el más reciente primero |
+| `registrarDeposito(cuenta, importe, codEmpleado)` | nuevo saldo | suma saldo, movimiento **003** |
+| `registrarRetiro(cuenta, importe, codEmpleado)` | nuevo saldo | valida saldo, resta, movimiento **004** |
+| `registrarTransferencia(origen, destino, importe, codEmpleado)` | saldo del origen | **009** en el origen y **008** en el destino, cada uno con la otra cuenta como referencia |
+
+**Reglas:** cuenta de 8 dígitos; importe mayor que cero, con máximo 2 decimales y hasta 1 000 000; la cuenta debe estar `ACTIVO`; el retiro y la transferencia exigen saldo suficiente; la transferencia es entre cuentas distintas y de la misma moneda. Las cuentas se leen con `UPDLOCK` dentro de la transacción, así dos operaciones simultáneas sobre la misma cuenta no se pisan. El número de movimiento es `int_cuencontmov + 1`.
+
+## 4. Patrones: Singleton y MVC
+
+### Singleton (constructor privado + `Lazy<T>`, seguro entre hilos)
+
+| Dónde | Clase | Uso |
+|---|---|---|
+| Servidor | `ec.edu.monster.db.ConexionBD` | Lee la cadena `EurekaBank` de `Web.config` una vez; `ConexionBD.Instancia.AbrirConexion()` |
+| Servidor | `ec.edu.monster.servicio.EurekaServicio` | `EurekaServicio.Instancia.RegistrarRetiro(...)` |
+| CLICON / CLIESC | `ec.edu.monster.servicio.ClienteEureka` | `ClienteEureka.Instancia` (una sola `ChannelFactory`) |
+| CLIWEB | `ec.edu.monster.servicio.ClienteEureka` | `builder.Services.AddSingleton<ClienteEureka>()` |
+| CLIMOV | `ClienteSoap` y `ControladorEureka` | `ClienteSoap.Instancia`, `ControladorEureka.Instancia` |
+
+```csharp
+public sealed class ConexionBD
+{
+    private static readonly Lazy<ConexionBD> _instancia = new Lazy<ConexionBD>(() => new ConexionBD());
+    public static ConexionBD Instancia => _instancia.Value;
+    private ConexionBD() { /* lee Web.config una sola vez */ }
+    public SqlConnection AbrirConexion() { ... }
+}
+```
+
+### MVC en los clientes (`ec/edu/monster/...`)
+
+| Cliente | modelo | vista | controlador |
+|---|---|---|---|
+| CLICON | `Modelos.cs` | `VistaConsola` | `ControladorConsola` |
+| CLIESC | `Modelos.cs` | `FormLogin`, `FormPrincipal`, `PanelMovimientos`, `PanelOperacion` | `ControladorEureka` |
+| CLIWEB | `Modelos.cs`, `ViewModels.cs` | `vista/Acceso/Login`, `vista/Banco/Movimientos`, `vista/Banco/Operacion` | `AccesoController`, `BancoController` |
+| CLIMOV | `Modelos.cs` | `LoginPage`, `MenuPage`, `MovimientosPage`, `OperacionPage` | `ControladorEureka` |
+
+En la web las vistas también están en `ec/edu/monster/vista` (se configuró `RazorViewEngineOptions` en `Program.cs`).
+
+## 5. Requisitos
+
+| Herramienta | Para qué |
+|---|---|
+| **SQL Server** (2019/2022, Developer o Express) en **modo de autenticación mixto** | Base `EUREKABANK` |
+| `sqlcmd` (viene con SQL Server) o SQL Server Management Studio | Ejecutar los scripts |
+| **Visual Studio 2022 Community** con *ASP.NET y web* (+ WCF), *Escritorio .NET* y *.NET MAUI* | Todo el código |
+| Celular Android 7.0+ con depuración USB | Cliente móvil |
+
+> **Regla de oro:** abre **cada solución en su propia ventana de Visual Studio**. Si abres otra solución en la ventana del servidor, se apaga IIS Express.
+
+---
+
+## Paso 0 — Base de datos (`03. BDD`)
+
+**Opción A (script):** en PowerShell, dentro de `03. BDD`:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\crear_bdd.ps1
+```
+Para otra instancia: `.\crear_bdd.ps1 -Servidor ".\SQLEXPRESS"`.
+
+**Opción B (SSMS):** abre y ejecuta en orden `01_Crea_BD.sql`, `02_Carga_Datos.sql`, `03_Crea_Login_monster.sql`.
+
+Resultado: 6 cuentas, 38 movimientos, 12 empleados (incluido `monster`) y el login de SQL `monster`. Si SQL Server está solo con autenticación de Windows, actívale el modo mixto (SSMS → Propiedades del servidor → Seguridad) y reinicia el servicio.
+
+**Cuentas de prueba:**
+
+| Cuenta | Cliente | Moneda | Saldo inicial | Estado |
+|---|---|---|---|---|
+| 00100001 | Alan Aranda | Soles | 6 900.00 | ACTIVO |
+| 00100002 | Alan Aranda | Dólares | 4 500.00 | ACTIVO |
+| 00200001 | Rosa Flores | Soles | 7 000.00 | ACTIVO |
+| 00200002 | Eric Coronel | Soles | 6 800.00 | ACTIVO |
+| 00200003 | Edgar Chávez | Dólares | 6 000.00 | ACTIVO |
+| 00300001 | Gabriel Gonzales | Soles | 0.00 | CANCELADO |
+
+## Paso 1 — Servidor (`04. SERVIDOR`)
+
+1. Abre `EUREKA_SOAP_DOTNET_SERVIDOR.sln` → clic derecho en `WSEureka.svc` → **Establecer como página principal**.
+2. **Depurar → Iniciar sin depurar**. Debe abrir `http://localhost:8087/WSEureka.svc` con "Servicio WSEureka".
+3. La conexión está en `Web.config`:
+   ```xml
+   <add name="EurekaBank" connectionString="Data Source=localhost;Initial Catalog=EUREKABANK;User ID=monster;Password=monster;TrustServerCertificate=True;Connect Timeout=10" />
+   ```
+   Con SQL Express cambia `Data Source=.\SQLEXPRESS`.
+
+## Paso 2 — Consola (`04. CLICON`)
+
+Abre `EUREKA_SOAP_DOTNET_CLICON.sln` en otra ventana → **Iniciar sin depurar** → `monster` / `monster`. Menú: **[1] Consultar cuenta y movimientos, [2] Depósito, [3] Retiro, [4] Transferencia, [0] Cerrar sesión**. La URL está en `App.config`.
+
+## Paso 3 — Escritorio (`04. CLIESC`)
+
+Abre `EUREKA_SOAP_DOTNET_CLIESC.sln` → **Iniciar sin depurar** → login. Menú lateral: **Movimientos, Depósito, Retiro, Transferencia**. Pide confirmación antes de registrar y muestra el nuevo saldo; a la derecha lleva las operaciones de la sesión. URL en `App.config`.
+
+## Paso 4 — Web (`04. CLIWEB`)
+
+Abre `EUREKA_SOAP_DOTNET_CLIWEB.sln` → perfil **EUREKA_SOAP_DOTNET_CLIWEB** → **Iniciar sin depurar** → `http://localhost:5087`. Si pide certificado SSL responde **No**. URL del servidor en `appsettings.json` (`ServicioSoap:Url`). Incluye 3 intentos de login, filtro `[RequiereSesion]` y `ValidateAntiForgeryToken`. Es *responsive*.
+
+## Paso 5 — Móvil (`04. CLIMOV`)
+
+Igual que en el TI.1.2: celular con **Depuración USB**, abrir `EUREKA_SOAP_DOTNET_CLIMOV.sln`, elegir el celular y **Iniciar sin depurar**. En la pantalla de login, cuadro **Servidor SOAP**:
+
+- Por cable: `adb reverse tcp:8087 tcp:8087` y `http://localhost:8087/WSEureka.svc`
+- Por WiFi: `http://IP-DE-LA-PC:8087/WSEureka.svc` (servidor publicado en IIS, Paso 6)
+- Emulador: `http://10.0.2.2:8087/WSEureka.svc`
+
+`Directory.Build.props` manda la carpeta `obj` a `%LOCALAPPDATA%\EUREKA_CLIMOV\obj` (Android falla con rutas de más de 260 caracteres).
+
+## Paso 6 — Trabajo en red
+
+| Integrante | Rol |
+|---|---|
+| 1 | Base de datos + servidor + consola |
+| 2 | Web + escritorio (apuntando a la IP del integrante 1) |
+| 3 | Móvil en celular real (misma WiFi) |
+
+IIS Express solo acepta conexiones locales. El integrante 1 compila el servidor, cierra su Visual Studio y ejecuta **como administrador**:
+```powershell
+powershell -ExecutionPolicy Bypass -File "RUTA\04. SERVIDOR\publicar_iis.ps1"
+```
+El script crea el sitio **EUREKA** en el puerto **8087**, abre el firewall y muestra la URL Wi-Fi. Como el servicio entra a SQL Server con el login `monster`, no hace falta dar permisos al usuario de IIS.
+
+## Casos de prueba
+
+| # | Caso | Entrada | Resultado esperado |
+|---|---|---|---|
+| 1 | Login correcto | monster / monster | Entra al menú |
+| 2 | Login incorrecto | monster / otra | "Usuario o clave incorrectos" (3 intentos) |
+| 3 | Consultar cuenta | 00100001 | Saldo 6,900.00 y 7 movimientos |
+| 4 | Cuenta inexistente | 99999999 | "La cuenta 99999999 no existe." |
+| 5 | Formato de cuenta | 123 | "La cuenta debe tener 8 dígitos" (no llama al servidor) |
+| 6 | Depósito | 00100001, 100.50 | Saldo 7,000.50, movimiento 003 |
+| 7 | Retiro | 00100001, 0.50 | Saldo 7,000.00, movimiento 004 |
+| 8 | Saldo insuficiente | 00100001, 50000 | "Saldo insuficiente…" |
+| 9 | Cuenta cancelada | retiro en 00300001 | "La cuenta 00300001 no está activa (CANCELADO)." |
+| 10 | Transferencia | 00100001 → 00200001, 100 | Movimientos 009 y 008 con referencia cruzada |
+| 11 | Monedas distintas | 00100001 → 00100002 | "Solo se puede transferir entre cuentas de la misma moneda." |
+| 12 | Más de 2 decimales | 1.555 | "El importe admite como máximo 2 decimales." |
+| 13 | SQL Server apagado | cualquier operación | "No se pudo acceder a la base de datos EUREKABANK…" |
+| 14 | Servidor SOAP apagado | — | "No se pudo conectar con el servidor…" |
+
+Para volver a los datos iniciales, ejecuta otra vez `03. BDD\crear_bdd.ps1`.

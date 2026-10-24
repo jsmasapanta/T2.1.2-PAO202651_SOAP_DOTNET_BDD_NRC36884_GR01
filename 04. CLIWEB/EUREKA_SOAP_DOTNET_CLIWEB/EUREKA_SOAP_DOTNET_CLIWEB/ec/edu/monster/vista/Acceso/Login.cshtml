@@ -1,0 +1,43 @@
+@model LoginViewModel
+@{
+    ViewData["Title"] = "Iniciar sesión";
+}
+
+<main class="login">
+    <section class="login-tarjeta">
+        <header class="login-encabezado">
+            <span class="login-icono">$</span>
+            <div>
+                <h1>EurekaBank</h1>
+                <p>Cliente web · SOAP .NET + SQL Server</p>
+            </div>
+        </header>
+
+        <form asp-action="Login" method="post" class="login-form" autocomplete="off">
+            <label for="Usuario">Usuario</label>
+            <input id="Usuario" name="Usuario" value="@Model.Usuario" autofocus @(Model.Bloqueado ? "disabled" : "") />
+
+            <label for="Clave">Clave</label>
+            <div class="campo-clave">
+                <input id="Clave" name="Clave" type="password" @(Model.Bloqueado ? "disabled" : "") />
+                <button type="button" class="ver-clave" onclick="alternarClave()" title="Mostrar u ocultar la clave">Ver</button>
+            </div>
+
+            <button type="submit" class="boton boton-primario" @(Model.Bloqueado ? "disabled" : "")>INGRESAR</button>
+
+            @if (!string.IsNullOrEmpty(Model.Error))
+            {
+                <p class="mensaje-error">@Model.Error</p>
+            }
+        </form>
+    </section>
+</main>
+
+@section Scripts {
+    <script>
+        function alternarClave() {
+            const campo = document.getElementById('Clave');
+            campo.type = campo.type === 'password' ? 'text' : 'password';
+        }
+    </script>
+}

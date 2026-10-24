@@ -1,0 +1,1 @@
+<%@ ServiceHost Language="C#" Debug="true" Service="ec.edu.monster.ws.WSEureka" CodeBehind="ec/edu/monster/ws/WSEureka.svc.cs" %>
