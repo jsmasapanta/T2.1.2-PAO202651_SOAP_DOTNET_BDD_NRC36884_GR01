@@ -169,6 +169,7 @@ namespace ec.edu.monster.vista
             {
                 decimal saldo = await _controlador.RegistrarAsync(_tipo, cuenta, destino, importe);
                 _lblResultado.ForeColor = Tema.ColorDe(_tipo);
+                _lblDetalle.ForeColor = Tema.TextoSuave;
                 _lblResultado.Text = $"{titulo} registrad{(_tipo == TipoOperacion.Transferencia ? "a" : "o")}";
                 _lblDetalle.Text = $"Importe: {ControladorEureka.Dinero(importe)}\nNuevo saldo de {cuenta}: {ControladorEureka.Dinero(saldo)}";
                 string linea = $"{DateTime.Now:HH:mm:ss}  {cuenta}" + (destino != null ? $" → {destino}" : "") +
@@ -192,6 +193,7 @@ namespace ec.edu.monster.vista
         {
             _lblResultado.ForeColor = Tema.Error;
             _lblResultado.Text = "No se pudo registrar";
+            _lblDetalle.ForeColor = Tema.Error;
             _lblDetalle.Text = mensaje;
         }
     }

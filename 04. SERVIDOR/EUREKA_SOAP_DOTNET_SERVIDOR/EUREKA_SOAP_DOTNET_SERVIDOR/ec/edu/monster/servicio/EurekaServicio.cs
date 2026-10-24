@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Globalization;
 using System.Linq;
 using ec.edu.monster.db;
 using ec.edu.monster.modelo;
@@ -236,6 +237,12 @@ namespace ec.edu.monster.servicio
 
         // ---------- Apoyo ----------
 
+        /// <summary>Importe con separador de miles y 2 decimales (6,900.00), igual que en los clientes.</summary>
+        internal static string Dinero(decimal importe)
+        {
+            return importe.ToString("#,##0.00", CultureInfo.InvariantCulture);
+        }
+
         /// <summary>Lo que hace falta de una cuenta para mover dinero.</summary>
         private class EstadoCuenta
         {
@@ -308,7 +315,7 @@ namespace ec.edu.monster.servicio
             if (nuevoSaldo < 0)
             {
                 throw new ReglaNegocioException(
-                    "Saldo insuficiente en la cuenta " + cuenta.Codigo + ". Saldo disponible: " + cuenta.Saldo.ToString("N2") + ".");
+                    "Saldo insuficiente en la cuenta " + cuenta.Codigo + ". Saldo disponible: " + Dinero(cuenta.Saldo) + ".");
             }
             int numero = cuenta.ContadorMovimientos + 1;
 
@@ -391,7 +398,7 @@ namespace ec.edu.monster.servicio
             }
             if (importe > maximo)
             {
-                throw new ArgumentException("El importe no puede superar " + maximo.ToString("N2") + ".");
+                throw new ArgumentException("El importe no puede superar " + EurekaServicio.Dinero(maximo) + ".");
             }
         }
 

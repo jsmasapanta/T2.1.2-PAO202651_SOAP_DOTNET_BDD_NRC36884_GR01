@@ -152,7 +152,8 @@ label {
 
 .salir { margin-top: auto; padding: 0 20px; }
 
-.contenido { padding: 28px 36px; display: flex; flex-direction: column; }
+/* min-width: 0 evita que la tabla ancha estire la columna de la grilla en pantallas pequeñas. */
+.contenido { padding: 28px 36px; display: flex; flex-direction: column; min-width: 0; }
 
 .titulo { margin: 0; color: var(--color); font-size: 28px; }
 .ayuda { color: var(--texto-suave); margin: 6px 0 22px; }
@@ -241,7 +242,8 @@ hr { border: 0; border-top: 1px solid var(--borde); margin: 24px 0 16px; }
 
 /* ---------- Pantallas pequeñas (celular) ---------- */
 @media (max-width: 800px) {
-    .app { grid-template-columns: 1fr; }
+    .app { grid-template-columns: minmax(0, 1fr); }
+    .tarjeta-cuenta h2 { font-size: 16px; }
     .menu { padding: 14px 0; }
     .menu nav { display: grid; grid-template-columns: 1fr 1fr; }
     .menu-item { text-align: center; padding: 12px 6px; font-size: 14px; }
