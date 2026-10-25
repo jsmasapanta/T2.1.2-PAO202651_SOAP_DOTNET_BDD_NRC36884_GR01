@@ -25,8 +25,8 @@ public sealed class ClienteSoap
     private const string Contrato = "WSEureka";
     private const string ClavePreferencia = "url_servidor_eureka";
 
-    // 10.0.2.2 es la PC vista desde el emulador; en un celular real se cambia por la IP de la PC.
-    public const string UrlPorDefecto = "http://10.0.2.2:8087/WSEureka.svc";
+    // IP de la PC con IIS en la red WiFi; en el emulador sería http://10.0.2.2:8087/WSEureka.svc.
+    public const string UrlPorDefecto = "http://192.168.100.3:8087/WSEureka.svc";
 
     private static readonly Lazy<ClienteSoap> _instancia = new(() => new ClienteSoap());
 
