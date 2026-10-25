@@ -192,6 +192,13 @@ powershell -ExecutionPolicy Bypass -File "RUTA\04. SERVIDOR\publicar_iis.ps1"
 ```
 El script crea el sitio **EUREKA** en el puerto **8087**, abre el firewall y muestra la URL Wi-Fi. Como el servicio entra a SQL Server con el login `monster`, no hace falta dar permisos al usuario de IIS.
 
+**Publicación manual (como la pide el ingeniero):**
+1. Visual Studio **como administrador** → abrir el servidor → configuración **Release** → clic derecho en el proyecto → **Publicar** → **Carpeta** → `C:\inetpub\eureka` → **Publicar** (el perfil queda en `Properties/PublishProfiles/FolderProfile.pubxml`).
+2. Administrador de IIS → **Grupos de aplicaciones** → **Agregar**: nombre `EUREKA`, **.NET CLR v4.0**, canalización **Integrada**.
+3. **Sitios** → **Agregar sitio web**: nombre `EUREKA`, grupo `EUREKA`, ruta física `C:\inetpub\eureka`, `http`, *Todas las no asignadas*, puerto `8087`.
+4. Firewall: regla de entrada para el puerto TCP **8087** (el script la crea como "EUREKA SOAP 8087").
+5. Probar en el navegador `http://IP:8087/WSEureka.svc` y `http://IP:8087/WSEureka.asmx`.
+
 ## Casos de prueba
 
 | # | Caso | Entrada | Resultado esperado |
