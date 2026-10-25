@@ -51,6 +51,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="WSEureka.svc" />
+    <Content Include="WSEureka.asmx" />
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
@@ -60,6 +61,10 @@
     <Compile Include="ec\edu\monster\ws\IWSEureka.cs" />
     <Compile Include="ec\edu\monster\ws\WSEureka.svc.cs">
       <DependentUpon>WSEureka.svc</DependentUpon>
+    </Compile>
+    <Compile Include="ec\edu\monster\ws\WSEurekaAsmx.asmx.cs">
+      <DependentUpon>WSEureka.asmx</DependentUpon>
+      <SubType>Component</SubType>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

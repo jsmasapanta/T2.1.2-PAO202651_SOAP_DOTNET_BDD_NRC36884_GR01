@@ -10,6 +10,7 @@ Operaciones: **consultar cuenta y movimientos, depósito, retiro y transferencia
 | **Login de SQL Server** | `monster` / `monster` (lo usa el servidor para conectarse) |
 | **Base de datos** | `EUREKABANK` en SQL Server local (`localhost`) |
 | **Servidor SOAP** | `http://localhost:8087/WSEureka.svc` (WSDL: `?wsdl`) |
+| **Página ASMX** | `http://localhost:8087/WSEureka.asmx` (las mismas 6 operaciones, con formulario de prueba) |
 | **Cliente web** | `http://localhost:5087` |
 | **IDE** | Visual Studio 2022 Community |
 | **Paquetes** | `ec.edu.monster.db` · `modelo` · `servicio` · `ws` (servidor) y `modelo` · `vista` · `controlador` · `servicio` (clientes) |
@@ -60,6 +61,17 @@ Operaciones: **consultar cuenta y movimientos, depósito, retiro y transferencia
 | `registrarTransferencia(origen, destino, importe, codEmpleado)` | saldo del origen | **009** en el origen y **008** en el destino, cada uno con la otra cuenta como referencia |
 
 **Reglas:** cuenta de 8 dígitos; importe mayor que cero, con máximo 2 decimales y hasta 1 000 000; la cuenta debe estar `ACTIVO`; el retiro y la transferencia exigen saldo suficiente; la transferencia es entre cuentas distintas y de la misma moneda. Las cuentas se leen con `UPDLOCK` dentro de la transacción, así dos operaciones simultáneas sobre la misma cuenta no se pisan. El número de movimiento es `int_cuencontmov + 1`.
+
+### WCF (`.svc`) y ASMX (`.asmx`)
+
+El servidor publica las mismas 6 operaciones de dos formas; las dos son SOAP, usan `EurekaServicio` y la misma base:
+
+| | `WSEureka.svc` | `WSEureka.asmx` |
+|---|---|---|
+| Tecnología | WCF (la que usan los 4 clientes) | ASP.NET Web Services (la anterior a WCF) |
+| Nombres de operación | `login`, `consultarCuenta`, … | `Login`, `ConsultarCuenta`, … |
+| En el navegador | "Servicio de WSEureka" y el WSDL en `?wsdl` | Lista de operaciones con formulario para probarlas |
+| Errores | SOAP Fault con `ErrorServicio { Codigo, Mensaje }` | SOAP Fault con el mismo detalle `ErrorServicio` |
 
 ## 4. Patrones: Singleton y MVC
 
