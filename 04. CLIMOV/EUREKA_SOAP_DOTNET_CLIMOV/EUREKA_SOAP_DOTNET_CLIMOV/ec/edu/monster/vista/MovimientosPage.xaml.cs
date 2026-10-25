@@ -18,6 +18,7 @@ public partial class MovimientosPage : ContentPage
     private async void OnConsultarClicked(object? sender, EventArgs e)
     {
         string cuenta = (TxtCuenta.Text ?? "").Trim();
+        TxtCuenta.Unfocus(); // oculta el teclado para que se vea la lista
         if (!ControladorEureka.EsCuentaValida(cuenta))
         {
             MostrarError("La cuenta debe tener 8 dígitos (ejemplo: 00100001).");

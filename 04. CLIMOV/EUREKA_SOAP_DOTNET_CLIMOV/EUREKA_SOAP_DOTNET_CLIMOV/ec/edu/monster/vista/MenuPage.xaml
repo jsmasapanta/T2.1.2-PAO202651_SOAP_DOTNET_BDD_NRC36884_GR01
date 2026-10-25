@@ -23,14 +23,14 @@
                 <Label Text="¿Qué desea hacer?" FontSize="18" FontAttributes="Bold" TextColor="{StaticResource Texto}" />
 
                 <Grid ColumnDefinitions="*,*" RowDefinitions="110,110" ColumnSpacing="12" RowSpacing="12">
-                    <Button Grid.Row="0" Grid.Column="0" Text="≡&#10;Movimientos" Clicked="OnMovimientosClicked"
-                            BackgroundColor="#0D6EFD" TextColor="White" FontSize="17" FontAttributes="Bold" CornerRadius="14" />
-                    <Button Grid.Row="0" Grid.Column="1" Text="+&#10;Depósito" Clicked="OnDepositoClicked"
-                            BackgroundColor="#198754" TextColor="White" FontSize="17" FontAttributes="Bold" CornerRadius="14" />
-                    <Button Grid.Row="1" Grid.Column="0" Text="−&#10;Retiro" Clicked="OnRetiroClicked"
-                            BackgroundColor="#C0392B" TextColor="White" FontSize="17" FontAttributes="Bold" CornerRadius="14" />
-                    <Button Grid.Row="1" Grid.Column="1" Text="⇄&#10;Transferencia" Clicked="OnTransferenciaClicked"
-                            BackgroundColor="#6F42C1" TextColor="White" FontSize="17" FontAttributes="Bold" CornerRadius="14" />
+                    <Button Grid.Row="0" Grid.Column="0" Text="≡   Movimientos" Clicked="OnMovimientosClicked"
+                            BackgroundColor="#0D6EFD" TextColor="White" FontSize="20" FontAttributes="Bold" CornerRadius="14" />
+                    <Button Grid.Row="0" Grid.Column="1" Text="+   Depósito" Clicked="OnDepositoClicked"
+                            BackgroundColor="#198754" TextColor="White" FontSize="20" FontAttributes="Bold" CornerRadius="14" />
+                    <Button Grid.Row="1" Grid.Column="0" Text="−   Retiro" Clicked="OnRetiroClicked"
+                            BackgroundColor="#C0392B" TextColor="White" FontSize="20" FontAttributes="Bold" CornerRadius="14" />
+                    <Button Grid.Row="1" Grid.Column="1" Text="⇄   Transferencia" Clicked="OnTransferenciaClicked"
+                            BackgroundColor="#6F42C1" TextColor="White" FontSize="20" FontAttributes="Bold" CornerRadius="14" />
                 </Grid>
 
                 <Border Padding="16" BackgroundColor="White" StrokeThickness="0" StrokeShape="RoundRectangle 14">

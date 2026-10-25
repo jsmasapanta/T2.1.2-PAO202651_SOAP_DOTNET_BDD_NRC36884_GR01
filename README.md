@@ -210,4 +210,4 @@ Para volver a los datos iniciales, ejecuta otra vez `03. BDD\crear_bdd.ps1`.
 
 Al abrir el manual en Word, si el índice aparece vacío: clic derecho sobre él → **Actualizar campo**.
 
-Los documentos se generan con los scripts de `_herramientas/generador_documentos_eureka` (fuera de este repositorio). Faltan las capturas del móvil: con el celular conectado se toman con `adb exec-out screencap -p > archivo.png`, se guardan en `05. DOCUMENTACIÓN/capturas/CLIMOV` (`01_login.png`, `02_menu.png`, `03_movimientos.png`, `04_operacion.png`) y se vuelve a generar el manual.
+Los documentos se generan con los scripts de `_herramientas/generador_documentos_eureka` (fuera de este repositorio). Las capturas del móvil se tomaron en una tablet Samsung SM-P610 con `adb exec-out screencap -p`.

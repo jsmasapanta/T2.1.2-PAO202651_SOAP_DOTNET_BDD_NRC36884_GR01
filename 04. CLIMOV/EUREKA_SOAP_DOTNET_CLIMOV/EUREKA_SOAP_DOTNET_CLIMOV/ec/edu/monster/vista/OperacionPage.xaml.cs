@@ -38,6 +38,7 @@ public partial class OperacionPage : ContentPage
         string cuenta = (TxtCuenta.Text ?? "").Trim();
         string? destino = _tipo == TipoOperacion.Transferencia ? (TxtDestino.Text ?? "").Trim() : null;
         decimal? importe = ControladorEureka.LeerImporte(TxtImporte.Text);
+        TxtCuenta.Unfocus(); TxtDestino.Unfocus(); TxtImporte.Unfocus(); // oculta el teclado para ver el resultado
 
         string? error = null;
         if (!ControladorEureka.EsCuentaValida(cuenta))
