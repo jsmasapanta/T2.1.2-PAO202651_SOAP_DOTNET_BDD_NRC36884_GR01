@@ -8,7 +8,7 @@
     <p class="ayuda">Escriba el número de cuenta (8 dígitos) y presione Consultar.</p>
 
     <form asp-action="Movimientos" method="get" class="fila-consulta">
-        <input name="cuenta" value="@Model.Cuenta" maxlength="8" inputmode="numeric" placeholder="Ej.: 00100001" autofocus autocomplete="off" />
+        <input name="cuenta" value="@Model.Cuenta" inputmode="numeric" placeholder="Ej.: 00100001" autofocus autocomplete="off" />
         <button type="submit" class="boton boton-color">CONSULTAR</button>
     </form>
 

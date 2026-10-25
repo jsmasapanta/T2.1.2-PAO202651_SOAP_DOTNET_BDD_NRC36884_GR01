@@ -15,15 +15,17 @@
                 <Label Text="Movimientos · Depósito · Retiro · Transferencia" FontSize="13" TextColor="#A9C8E8" />
             </VerticalStackLayout>
 
+            <!-- Imagen -->
+            <Image Source="monster.jpg" Aspect="AspectFill" HeightRequest="260" Margin="0,0,0,0" />
+
             <!-- Formulario -->
-            <Border Margin="16,-16,16,16" Padding="20" BackgroundColor="White"
+            <Border Margin="16,-24,16,16" Padding="20" BackgroundColor="White"
                     StrokeThickness="0" StrokeShape="RoundRectangle 14">
                 <Border.Shadow>
                     <Shadow Brush="Black" Opacity="0.12" Radius="12" Offset="0,4" />
                 </Border.Shadow>
                 <VerticalStackLayout Spacing="10">
                     <Label Text="Iniciar sesión" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource Texto}" />
-                    <Label x:Name="LblIntentos" FontSize="13" TextColor="{StaticResource TextoSuave}" />
 
                     <Label Text="Usuario" FontAttributes="Bold" TextColor="{StaticResource Texto}" Margin="0,6,0,0" />
                     <Entry x:Name="TxtUsuario" Placeholder="monster" ReturnType="Next" />

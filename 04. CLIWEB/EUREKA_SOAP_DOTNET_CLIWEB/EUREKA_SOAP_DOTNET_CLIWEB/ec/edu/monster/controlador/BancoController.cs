@@ -1,6 +1,8 @@
 using System.Text.Json;
 using ec.edu.monster.modelo;
 using ec.edu.monster.servicio;
+using ec.edu.monster.vista;
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ec.edu.monster.controlador;
@@ -70,28 +72,32 @@ public class BancoController : Controller
         };
         bool esTransferencia = modelo.Tipo == TipoOperacion.Transferencia;
 
-        // Las reglas (formato de cuenta, importe, cuentas distintas, saldo) las valida el servidor.
-        if (string.IsNullOrEmpty(modelo.Cuenta) || (esTransferencia && string.IsNullOrEmpty(modelo.CuentaDestino)))
-            modelo.Error = "Complete los números de cuenta.";
-        else if (!Formato.IntentarLeerImporte(modelo.Importe, out _))
-            modelo.Error = "Escriba el importe con números (ejemplo: 150 o 75.50).";
-        if (modelo.Error != null)
+        // El servicio recibe un decimal: solo se convierte lo escrito. Las reglas (cuenta, importe,
+        // cuentas distintas, saldo) las valida el servidor y su mensaje se muestra.
+        if (!LeerImporte(modelo.Importe, out decimal importe))
         {
+            modelo.Error = "Escriba el importe con números (ejemplo: 150 o 75.50).";
             return View("Operacion", modelo);
         }
 
-        Formato.IntentarLeerImporte(modelo.Importe, out decimal importe);
         string empleado = HttpContext.Session.GetString(RequiereSesionAttribute.ClaveEmpleado)!;
+        string cuenta = modelo.Cuenta ?? "";
+        string titulo = Formato.Titulo(modelo.Tipo);
         try
         {
-            decimal saldo = await _cliente.RegistrarAsync(modelo.Tipo, modelo.Cuenta!, esTransferencia ? modelo.CuentaDestino : null, importe, empleado);
+            decimal saldo = modelo.Tipo switch
+            {
+                TipoOperacion.Deposito => await _cliente.RegistrarDepositoAsync(cuenta, importe, empleado),
+                TipoOperacion.Retiro => await _cliente.RegistrarRetiroAsync(cuenta, importe, empleado),
+                _ => await _cliente.RegistrarTransferenciaAsync(cuenta, modelo.CuentaDestino ?? "", importe, empleado)
+            };
 
-            modelo.Exito = $"{modelo.Titulo} registrad{(esTransferencia ? "a" : "o")}";
+            modelo.Exito = $"{titulo} registrad{(esTransferencia ? "a" : "o")}";
             modelo.Detalle = esTransferencia
                 ? $"{Formato.Dinero(importe)} de {modelo.Cuenta} a {modelo.CuentaDestino}. Nuevo saldo de {modelo.Cuenta}: {Formato.Dinero(saldo)}"
                 : $"{Formato.Dinero(importe)} en la cuenta {modelo.Cuenta}. Nuevo saldo: {Formato.Dinero(saldo)}";
 
-            modelo.Sesion.Insert(0, $"{DateTime.Now:HH:mm:ss} · {modelo.Titulo} · {modelo.Cuenta}" +
+            modelo.Sesion.Insert(0, $"{DateTime.Now:HH:mm:ss} · {titulo} · {modelo.Cuenta}" +
                                     (esTransferencia ? $" → {modelo.CuentaDestino}" : "") +
                                     $" · {Formato.Dinero(importe)} (saldo {Formato.Dinero(saldo)})");
             while (modelo.Sesion.Count > MaximoSesion) modelo.Sesion.RemoveAt(modelo.Sesion.Count - 1);
@@ -104,6 +110,10 @@ public class BancoController : Controller
         }
         return View("Operacion", modelo);
     }
+
+    /// <summary>Convierte lo escrito (punto o coma decimal) al decimal que recibe el servicio.</summary>
+    private static bool LeerImporte(string? texto, out decimal importe) =>
+        decimal.TryParse((texto ?? "").Trim().Replace(',', '.'), NumberStyles.Number, CultureInfo.InvariantCulture, out importe);
 
     private IActionResult MostrarOperacion(TipoOperacion tipo)
     {

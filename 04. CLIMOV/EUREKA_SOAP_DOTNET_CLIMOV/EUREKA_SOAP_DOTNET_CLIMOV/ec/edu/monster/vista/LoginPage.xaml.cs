@@ -3,28 +3,24 @@ using ec.edu.monster.servicio;
 
 namespace ec.edu.monster.vista;
 
-/// <summary>Pantalla de inicio de sesión (3 intentos) y configuración de la URL del servidor.</summary>
+/// <summary>
+/// Pantalla de inicio de sesión y configuración de la URL del servidor. Los 3 intentos y el bloqueo
+/// los controla el servidor: aquí solo se muestra su mensaje.
+/// </summary>
 public partial class LoginPage : ContentPage
 {
     private readonly ControladorEureka _controlador = ControladorEureka.Instancia;
-    private int _intentos;
 
     public LoginPage()
     {
         InitializeComponent();
         TxtUrl.Text = _controlador.UrlServidor;
-        MostrarIntentos();
     }
 
     private async void OnIngresarClicked(object? sender, EventArgs e)
     {
         string usuario = TxtUsuario.Text ?? "";
         string clave = TxtClave.Text ?? "";
-        if (string.IsNullOrWhiteSpace(usuario) || string.IsNullOrEmpty(clave))
-        {
-            MostrarError("Ingrese usuario y clave.");
-            return;
-        }
         if (string.IsNullOrWhiteSpace(TxtUrl.Text))
         {
             MostrarError("Ingrese la URL del servidor.");
@@ -35,31 +31,17 @@ public partial class LoginPage : ContentPage
         Ocupado(true);
         try
         {
-            if (await _controlador.IniciarSesionAsync(usuario, clave))
+            await _controlador.IniciarSesionAsync(usuario, clave);
+            Window.Page = new NavigationPage(new MenuPage())
             {
-                Window.Page = new NavigationPage(new MenuPage())
-                {
-                    BarBackgroundColor = Color.FromArgb("#0B4F8A"),
-                    BarTextColor = Colors.White
-                };
-                return;
-            }
-
-            _intentos++;
-            if (_intentos >= ControladorEureka.MaximoIntentos)
-            {
-                await DisplayAlert("Acceso bloqueado",
-                    $"Superó los {ControladorEureka.MaximoIntentos} intentos permitidos. La aplicación se cerrará.", "Aceptar");
-                Application.Current?.Quit();
-                return;
-            }
-            TxtClave.Text = "";
-            MostrarError("Usuario o clave incorrectos.");
-            MostrarIntentos();
+                BarBackgroundColor = Color.FromArgb("#0B4F8A"),
+                BarTextColor = Colors.White
+            };
         }
         catch (ErrorServicioException ex)
         {
-            // Un error de conexión no cuenta como intento fallido.
+            // Mensaje del servidor: clave incorrecta con intentos restantes, usuario bloqueado o falla de conexión.
+            TxtClave.Text = "";
             MostrarError(ex.Message);
         }
         finally
@@ -67,9 +49,6 @@ public partial class LoginPage : ContentPage
             Ocupado(false);
         }
     }
-
-    private void MostrarIntentos() =>
-        LblIntentos.Text = $"Intento {_intentos + 1} de {ControladorEureka.MaximoIntentos}";
 
     private void MostrarError(string mensaje)
     {

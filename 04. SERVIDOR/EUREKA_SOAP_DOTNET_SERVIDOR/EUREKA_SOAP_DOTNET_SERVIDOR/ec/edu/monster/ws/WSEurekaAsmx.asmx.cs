@@ -19,7 +19,7 @@ namespace ec.edu.monster.ws
     [WebServiceBinding(ConformsTo = WsiProfiles.BasicProfile1_1)]
     public class WSEurekaAsmx : WebService
     {
-        [WebMethod(Description = "Devuelve el empleado si usuario y clave son correctos; si no, vacío.")]
+        [WebMethod(Description = "Devuelve el empleado. Si usuario o clave no coinciden responde un error con los intentos restantes (bloqueo de 2 minutos al tercero).")]
         public Empleado Login(string usuario, string clave) =>
             Ejecutar(() => EurekaServicio.Instancia.Login(usuario, clave));
 

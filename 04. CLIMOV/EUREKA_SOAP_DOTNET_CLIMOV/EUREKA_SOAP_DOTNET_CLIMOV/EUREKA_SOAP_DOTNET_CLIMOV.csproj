@@ -44,9 +44,6 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.5" />
-		<!-- Cliente WCF (el mismo de la web) para usar el proxy generado desde el WSDL. -->
-		<PackageReference Include="System.ServiceModel.Http" Version="8.1.2" />
-		<PackageReference Include="System.ServiceModel.Primitives" Version="8.1.2" />
 	</ItemGroup>
 
 </Project>

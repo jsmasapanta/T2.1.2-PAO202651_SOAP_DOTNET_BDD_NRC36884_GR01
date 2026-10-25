@@ -7,45 +7,72 @@ package "ec.edu.monster.vista" {
   class FormPrincipal
   class PanelMovimientos
   class PanelOperacion
+  class Formato <<static>> {
+    + Dinero(importe) : string
+    + Titulo(tipo) : string
+    + EsIngreso(movimiento) : bool
+    + IntentarLeerImporte(texto, out importe) : bool
+    + Monster() : Image
+  }
   class Tema <<static>>
 }
 
 package "ec.edu.monster.controlador" {
   class ControladorEureka {
     + Empleado : Empleado
-    + IniciarSesionAsync(usuario, clave) : Task<bool>
+    + IniciarSesionAsync(usuario, clave) : Task<Empleado>
     + ConsultarCuentaAsync(cuenta) : Task<Cuenta>
     + TraerMovimientosAsync(cuenta) : Task<Movimiento[]>
-    + RegistrarAsync(tipo, cuenta, destino, importe) : Task<decimal>
+    + RegistrarDepositoAsync(cuenta, importe) : Task<decimal>
+    + RegistrarRetiroAsync(cuenta, importe) : Task<decimal>
+    + RegistrarTransferenciaAsync(origen, destino, importe) : Task<decimal>
     + CerrarSesion()
   }
 }
 
 package "ec.edu.monster.servicio" {
+  interface IWSEureka <<contrato SOAP>> {
+    + login(usuario, clave) : Empleado
+    + consultarCuenta(cuenta) : Cuenta
+    + traerMovimientos(cuenta) : Movimiento[]
+    + registrarDeposito(cuenta, importe, codEmpleado) : decimal
+    + registrarRetiro(cuenta, importe, codEmpleado) : decimal
+    + registrarTransferencia(origen, destino, importe, codEmpleado) : decimal
+  }
   class ClienteEureka <<Singleton>> {
     - {static} _instancia : Lazy<ClienteEureka>
     + {static} Instancia : ClienteEureka
-    - _fabrica : ChannelFactory<WSEureka>
+    - _fabrica : ChannelFactory<IWSEureka>
     - ClienteEureka()
     - Invocar<T>(llamada) : T
   }
   class ErrorServicioException
-
-  package "WSEurekaReference (archivo GENERADO desde el WSDL)" #E3EEF8 {
-    interface WSEureka <<contrato>> {
-      + login(usuario, clave) : Empleado
-      + consultarCuenta(cuenta) : Cuenta
-      + traerMovimientos(cuenta) : Movimiento[]
-      + registrarDeposito / Retiro / Transferencia(...) : decimal
-    }
-    class Empleado
-    class Cuenta
-    class Movimiento
-    class ErrorServicio
-  }
 }
 
-package "ec.edu.monster.modelo" {
+package "ec.edu.monster.modelo  (solo get/set)" {
+  class Empleado {
+    + Codigo : string
+    + Usuario : string
+    + Nombre : string
+  }
+  class Cuenta {
+    + Codigo, Cliente, Moneda, Sucursal : string
+    + Saldo : decimal
+    + Estado : string
+    + FechaCreacion : DateTime
+    + NumeroMovimientos : int
+  }
+  class Movimiento {
+    + Numero : int
+    + Fecha : DateTime
+    + Tipo, Accion : string
+    + Importe : decimal
+    + Empleado, CuentaReferencia : string
+  }
+  class ErrorServicio {
+    + Codigo : string
+    + Mensaje : string
+  }
   enum TipoOperacion {
     Deposito
     Retiro
@@ -59,19 +86,23 @@ FormPrincipal *-- PanelMovimientos
 FormPrincipal *-- PanelOperacion
 PanelMovimientos --> ControladorEureka
 PanelOperacion --> ControladorEureka
+PanelMovimientos ..> Formato
+PanelOperacion ..> Formato
 ControladorEureka --> ClienteEureka : Instancia
-ClienteEureka ..> WSEureka : ChannelFactory
+ClienteEureka ..> IWSEureka : ChannelFactory
 ClienteEureka ..> ErrorServicioException
-ControladorEureka ..> Cuenta
-ControladorEureka ..> Movimiento
-ControladorEureka ..> TipoOperacion
+ErrorServicioException ..> ErrorServicio
+IWSEureka ..> Empleado
+IWSEureka ..> Cuenta
+IWSEureka ..> Movimiento
 
 note bottom of ClienteEureka
-  Sin reglas del banco: las valida el servidor
-  y su mensaje llega en el SOAP Fault (ErrorServicio).
+  Sin reglas del banco: el login con 3 intentos y todas
+  las validaciones están en el servidor; su mensaje llega
+  en el SOAP Fault (ErrorServicio).
   Consola: igual (VistaConsola + ControladorConsola).
   Web: ClienteEureka con AddSingleton en Program.cs.
-  Móvil: ClienteSoap.Instancia (mismo proxy, dotnet-svcutil)
-  y ControladorEureka.Instancia.
+  Móvil: ClienteSoap.Instancia arma el sobre SOAP con
+  HttpClient y llena los mismos modelos get/set.
 end note
 @enduml

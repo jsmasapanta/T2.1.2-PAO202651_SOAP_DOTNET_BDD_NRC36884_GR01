@@ -1,6 +1,6 @@
 @model OperacionViewModel
 @{
-    ViewData["Title"] = Model.Titulo;
+    ViewData["Title"] = Formato.Titulo(Model.Tipo);
     bool esTransferencia = Model.Tipo == TipoOperacion.Transferencia;
     string ayuda = Model.Tipo switch
     {
@@ -11,7 +11,7 @@
 }
 
 <div class="tema-@Model.Tipo.ToString().ToLowerInvariant()">
-    <h1 class="titulo">@Model.Titulo</h1>
+    <h1 class="titulo">@Formato.Titulo(Model.Tipo)</h1>
     <p class="ayuda">@ayuda</p>
 
     <div class="columnas">
@@ -20,18 +20,18 @@
                 <input type="hidden" name="Tipo" value="@Model.Tipo" />
 
                 <label for="Cuenta">@(esTransferencia ? "Cuenta de origen" : "Cuenta")</label>
-                <input id="Cuenta" name="Cuenta" value="@Model.Cuenta" maxlength="8" inputmode="numeric" placeholder="Ej.: 00100001" autofocus />
+                <input id="Cuenta" name="Cuenta" value="@Model.Cuenta" inputmode="numeric" placeholder="Ej.: 00100001" autofocus />
 
                 @if (esTransferencia)
                 {
                     <label for="CuentaDestino">Cuenta de destino</label>
-                    <input id="CuentaDestino" name="CuentaDestino" value="@Model.CuentaDestino" maxlength="8" inputmode="numeric" placeholder="Ej.: 00200001" />
+                    <input id="CuentaDestino" name="CuentaDestino" value="@Model.CuentaDestino" inputmode="numeric" placeholder="Ej.: 00200001" />
                 }
 
                 <label for="Importe">Importe</label>
                 <input id="Importe" name="Importe" value="@Model.Importe" inputmode="decimal" placeholder="Ej.: 150 o 75.50" />
 
-                <button type="submit" class="boton boton-color ancho">REGISTRAR @Model.Titulo.ToUpperInvariant()</button>
+                <button type="submit" class="boton boton-color ancho">REGISTRAR @Formato.Titulo(Model.Tipo).ToUpperInvariant()</button>
             </form>
 
             <hr />
@@ -74,7 +74,7 @@
 
 @section Scripts {
     <script>
-        const operacion = '@Model.Titulo.ToLowerInvariant()';
+        const operacion = '@Formato.Titulo(Model.Tipo).ToLowerInvariant()';
         function confirmar() {
             const cuenta = document.getElementById('Cuenta').value.trim();
             const destino = document.getElementById('CuentaDestino');

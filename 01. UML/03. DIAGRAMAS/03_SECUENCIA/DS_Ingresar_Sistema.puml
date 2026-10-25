@@ -17,21 +17,31 @@ Vista -> Ctrl : IniciarSesion(usuario, clave)
 Ctrl -> Proxy : Login(usuario, clave)
 Proxy -> WS : POST SOAP <login>
 WS -> Neg : Login(usuario, clave)
-Neg -> BD : AbrirConexion()
-BD --> Neg : SqlConnection
-Neg -> SQL : SELECT chr_emplcodigo, vch_emplclave ... FROM Empleado
-SQL --> Neg : fila del empleado
-alt clave correcta
-  Neg --> WS : Empleado
-  WS --> Proxy : <loginResult><Codigo>0012</Codigo>...
-  Proxy --> Ctrl : Empleado
-  Ctrl --> Vista : true
-  Vista --> Empleado : menú principal
-else usuario o clave incorrectos
-  Neg --> WS : null
-  WS --> Proxy : <loginResult i:nil="true"/>
-  Proxy --> Ctrl : null
-  Ctrl --> Vista : false
-  Vista --> Empleado : «Usuario o clave incorrectos» (intentos restantes)
+alt usuario bloqueado (3 intentos fallidos hace menos de 2 min)
+  Neg --> WS : ReglaNegocioException
+  WS --> Proxy : SOAP Fault «Usuario bloqueado por superar 3 intentos…»
+  Proxy --> Ctrl : ErrorServicioException(mensaje)
+  Ctrl --> Vista : ErrorServicioException
+  Vista --> Empleado : mensaje del servidor
+else no bloqueado
+  Neg -> BD : AbrirConexion()
+  BD --> Neg : SqlConnection
+  Neg -> SQL : SELECT chr_emplcodigo, vch_emplclave ... FROM Empleado
+  SQL --> Neg : fila del empleado
+  alt clave correcta
+    Neg -> Neg : reinicia los intentos
+    Neg --> WS : Empleado
+    WS --> Proxy : <loginResult><Codigo>0012</Codigo>...
+    Proxy --> Ctrl : Empleado (modelo get/set)
+    Ctrl --> Vista : Empleado
+    Vista --> Empleado : menú principal
+  else usuario o clave incorrectos
+    Neg -> Neg : intentos + 1 (al 3.º bloquea 2 min)
+    Neg --> WS : ReglaNegocioException
+    WS --> Proxy : SOAP Fault «Usuario o clave incorrectos. Intentos restantes: N.»
+    Proxy --> Ctrl : ErrorServicioException(mensaje)
+    Ctrl --> Vista : ErrorServicioException
+    Vista --> Empleado : mensaje del servidor
+  end
 end
 @enduml

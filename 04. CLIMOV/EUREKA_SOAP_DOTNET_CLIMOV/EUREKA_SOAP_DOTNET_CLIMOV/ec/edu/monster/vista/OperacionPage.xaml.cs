@@ -15,9 +15,9 @@ public partial class OperacionPage : ContentPage
     {
         InitializeComponent();
         _tipo = tipo;
-        _color = ControladorEureka.ColorDe(tipo);
+        _color = Formato.ColorDe(tipo);
 
-        Title = ControladorEureka.Titulo(tipo);
+        Title = Formato.Titulo(tipo);
         BtnRegistrar.Text = "REGISTRAR " + Title.ToUpperInvariant();
         BtnRegistrar.BackgroundColor = _color;
         Cargando.Color = _color;
@@ -37,24 +37,20 @@ public partial class OperacionPage : ContentPage
     {
         string cuenta = (TxtCuenta.Text ?? "").Trim();
         string? destino = _tipo == TipoOperacion.Transferencia ? (TxtDestino.Text ?? "").Trim() : null;
-        decimal? importe = ControladorEureka.LeerImporte(TxtImporte.Text);
+        decimal? importe = Formato.LeerImporte(TxtImporte.Text);
         TxtCuenta.Unfocus(); TxtDestino.Unfocus(); TxtImporte.Unfocus(); // oculta el teclado para ver el resultado
 
-        // Las reglas (formato de cuenta, importe, cuentas distintas, saldo) las valida el servidor.
-        string? error = null;
-        if (cuenta.Length == 0 || destino?.Length == 0)
-            error = "Complete los números de cuenta.";
-        else if (importe == null)
-            error = "Escriba el importe con números (ejemplo: 150 o 75,50).";
-        if (error != null)
+        // Las reglas (formato de cuenta, importe, cuentas distintas, saldo) las valida el servidor;
+        // aquí solo se comprueba que el importe sea un número para poder enviarlo.
+        if (importe == null)
         {
-            MostrarError(error);
+            MostrarError("Escriba el importe con números (ejemplo: 150 o 75,50).");
             return;
         }
 
         string pregunta = destino != null
-            ? $"¿Transferir {ControladorEureka.Dinero(importe!.Value)} de la cuenta {cuenta} a la cuenta {destino}?"
-            : $"¿Registrar {Title.ToLowerInvariant()} de {ControladorEureka.Dinero(importe!.Value)} en la cuenta {cuenta}?";
+            ? $"¿Transferir {Formato.Dinero(importe!.Value)} de la cuenta {cuenta} a la cuenta {destino}?"
+            : $"¿Registrar {Title.ToLowerInvariant()} de {Formato.Dinero(importe!.Value)} en la cuenta {cuenta}?";
         if (!await DisplayAlert("Confirmar", pregunta, "Sí", "No"))
         {
             return;
@@ -63,10 +59,18 @@ public partial class OperacionPage : ContentPage
         Ocupado(true);
         try
         {
-            decimal saldo = await _controlador.RegistrarAsync(_tipo, cuenta, destino, importe.Value);
+            decimal saldo = _tipo switch
+            {
+                TipoOperacion.Deposito => await _controlador.RegistrarDepositoAsync(cuenta, importe.Value),
+                TipoOperacion.Retiro => await _controlador.RegistrarRetiroAsync(cuenta, importe.Value),
+                _ => await _controlador.RegistrarTransferenciaAsync(cuenta, destino!, importe.Value)
+            };
+            _controlador.AnotarOperacion($"{DateTime.Now:HH:mm:ss} · {Title} · {cuenta}"
+                + (destino != null ? $" → {destino}" : "")
+                + $" · {Formato.Dinero(importe.Value)} (saldo {Formato.Dinero(saldo)})");
             LblResultado.TextColor = _color;
             LblResultado.Text = $"{Title} registrad{(destino != null ? "a" : "o")}";
-            LblDetalle.Text = $"Importe: {ControladorEureka.Dinero(importe.Value)}\nNuevo saldo de {cuenta}: {ControladorEureka.Dinero(saldo)}";
+            LblDetalle.Text = $"Importe: {Formato.Dinero(importe.Value)}\nNuevo saldo de {cuenta}: {Formato.Dinero(saldo)}";
             TxtImporte.Text = "";
         }
         catch (ErrorServicioException ex)

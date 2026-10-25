@@ -5,7 +5,7 @@ DBMS           :  SQL Server
 Base de Datos  :  EUREKABANK
 Script         :  02 - Carga datos de prueba
 Datos originales: Ing. Eric Gustavo Coronel Castillo (www.desarrollasoftware.com)
-Agregado GR01  :  empleado 0012 "monster" / clave "monster" (usuario del sistema)
+Agregado GR01  :  empleado 0012 usuario "monster" / clave "monster69" (usuario del sistema)
 */
 
 USE EUREKABANK;
@@ -181,11 +181,11 @@ insert into Contador Values( 'Parametro', 2, 3 );
 insert into Contador Values( 'Cliente', 21, 5 );
 
 -- =============================================
--- Usuario del sistema (convencion del curso: monster / monster)
+-- Usuario del sistema: monster / monster69
 -- Es el empleado que inicia sesion en los clientes y registra los movimientos.
 -- =============================================
 
-INSERT INTO empleado VALUES( '0012', 'Monster', 'Inc', 'Monster', 'Quito', 'ESPE - Sangolqui', 'monster', 'monster' );
+INSERT INTO empleado VALUES( '0012', 'Monster', 'Inc', 'Monster', 'Quito', 'ESPE - Sangolqui', 'monster', 'monster69' );
 insert into Asignado values( '000012', '001', '0012', '20260101', null );
 UPDATE Contador SET int_contitem = 12 WHERE vch_conttabla = 'Asignado';
 GO

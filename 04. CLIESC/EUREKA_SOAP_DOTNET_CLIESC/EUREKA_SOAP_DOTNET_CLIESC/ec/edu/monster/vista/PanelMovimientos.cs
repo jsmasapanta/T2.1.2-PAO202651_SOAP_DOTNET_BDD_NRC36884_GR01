@@ -104,11 +104,6 @@ namespace ec.edu.monster.vista
         private async void Consultar()
         {
             string cuenta = _txtCuenta.Text.Trim();
-            if (cuenta.Length == 0)
-            {
-                _lblMensaje.Text = "Escriba el número de cuenta.";
-                return;
-            }
 
             _btnConsultar.Enabled = false;
             _lblMensaje.Text = string.Empty;
@@ -136,7 +131,7 @@ namespace ec.edu.monster.vista
         {
             _lblCliente.Text = $"{c.Codigo} · {c.Cliente}";
             _lblDetalle.Text = $"Moneda: {c.Moneda}   ·   Sucursal: {c.Sucursal}   ·   Estado: {c.Estado}   ·   Creada: {c.FechaCreacion:dd/MM/yyyy}";
-            _lblSaldo.Text = ControladorEureka.Dinero(c.Saldo);
+            _lblSaldo.Text = Formato.Dinero(c.Saldo);
         }
 
         private void MostrarMovimientos(Movimiento[] movimientos)
@@ -145,8 +140,8 @@ namespace ec.edu.monster.vista
             foreach (Movimiento m in movimientos)
             {
                 int fila = _tabla.Rows.Add(m.Numero, m.Fecha.ToString("dd/MM/yyyy HH:mm"), m.Tipo, m.Accion,
-                    (ControladorEureka.EsIngreso(m) ? "+" : "−") + ControladorEureka.Dinero(m.Importe), m.Empleado, m.CuentaReferencia);
-                _tabla.Rows[fila].Cells["Importe"].Style.ForeColor = ControladorEureka.EsIngreso(m) ? Tema.Ingreso : Tema.Salida;
+                    (Formato.EsIngreso(m) ? "+" : "−") + Formato.Dinero(m.Importe), m.Empleado, m.CuentaReferencia);
+                _tabla.Rows[fila].Cells["Importe"].Style.ForeColor = Formato.EsIngreso(m) ? Tema.Ingreso : Tema.Salida;
             }
             if (movimientos.Length == 0)
             {

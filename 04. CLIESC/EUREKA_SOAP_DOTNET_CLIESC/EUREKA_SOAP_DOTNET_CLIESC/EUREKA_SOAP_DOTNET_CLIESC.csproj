@@ -42,9 +42,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ec\edu\monster\controlador\ControladorEureka.cs" />
+    <Compile Include="ec\edu\monster\modelo\Cuenta.cs" />
+    <Compile Include="ec\edu\monster\modelo\Empleado.cs" />
+    <Compile Include="ec\edu\monster\modelo\ErrorServicio.cs" />
+    <Compile Include="ec\edu\monster\modelo\Movimiento.cs" />
     <Compile Include="ec\edu\monster\modelo\TipoOperacion.cs" />
     <Compile Include="ec\edu\monster\servicio\ClienteEureka.cs" />
-    <Compile Include="ec\edu\monster\servicio\WSEurekaReference.cs" />
+    <Compile Include="ec\edu\monster\servicio\IWSEureka.cs" />
     <Compile Include="ec\edu\monster\vista\FormLogin.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -57,9 +61,15 @@
     <Compile Include="ec\edu\monster\vista\PanelOperacion.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="ec\edu\monster\vista\Formato.cs" />
     <Compile Include="ec\edu\monster\vista\Tema.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Recursos\monster.jpg">
+      <LogicalName>monster.jpg</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

@@ -72,7 +72,9 @@ label {
 
 .login-tarjeta {
     width: 100%;
-    max-width: 420px;
+    max-width: 840px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     background: var(--tarjeta);
     border-radius: 10px;
     overflow: hidden;
@@ -93,6 +95,10 @@ label {
 .login-icono { font-size: 42px; font-weight: 700; }
 
 .login-form { padding: 10px 32px 28px; }
+.login-imagen { width: 100%; height: 100%; min-height: 420px; object-fit: cover; display: block; }
+.login-panel { display: flex; flex-direction: column; }
+
+.menu-imagen { width: calc(100% - 40px); margin: 18px 20px 0; border-radius: 8px; }
 
 .campo-clave { display: flex; gap: 8px; }
 .ver-clave {
@@ -242,6 +248,9 @@ hr { border: 0; border-top: 1px solid var(--borde); margin: 24px 0 16px; }
 
 /* ---------- Pantallas pequeñas (celular) ---------- */
 @media (max-width: 800px) {
+    .login-tarjeta { grid-template-columns: 1fr; max-width: 420px; }
+    .login-imagen { min-height: 0; max-height: 260px; }
+    .menu-imagen { display: none; }
     .app { grid-template-columns: minmax(0, 1fr); }
     .tarjeta-cuenta h2 { font-size: 16px; }
     .menu { padding: 14px 0; }

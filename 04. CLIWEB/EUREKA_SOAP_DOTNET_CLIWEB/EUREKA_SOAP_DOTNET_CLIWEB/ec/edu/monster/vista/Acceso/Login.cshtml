@@ -5,31 +5,36 @@
 
 <main class="login">
     <section class="login-tarjeta">
-        <header class="login-encabezado">
-            <span class="login-icono">$</span>
-            <div>
-                <h1>EurekaBank</h1>
-                <p>Cliente web · SOAP .NET + SQL Server</p>
-            </div>
-        </header>
+        <img class="login-imagen" src="~/img/monster.jpg" alt="Monsters Inc." asp-append-version="true" />
 
-        <form asp-action="Login" method="post" class="login-form" autocomplete="off">
-            <label for="Usuario">Usuario</label>
-            <input id="Usuario" name="Usuario" value="@Model.Usuario" autofocus @(Model.Bloqueado ? "disabled" : "") />
+        <div class="login-panel">
+            <header class="login-encabezado">
+                <span class="login-icono">$</span>
+                <div>
+                    <h1>EurekaBank</h1>
+                    <p>Cliente web · SOAP .NET + SQL Server</p>
+                </div>
+            </header>
 
-            <label for="Clave">Clave</label>
-            <div class="campo-clave">
-                <input id="Clave" name="Clave" type="password" @(Model.Bloqueado ? "disabled" : "") />
-                <button type="button" class="ver-clave" onclick="alternarClave()" title="Mostrar u ocultar la clave">Ver</button>
-            </div>
+            <form asp-action="Login" method="post" class="login-form" autocomplete="off">
+                <label for="Usuario">Usuario</label>
+                <input id="Usuario" name="Usuario" value="@Model.Usuario" autofocus />
 
-            <button type="submit" class="boton boton-primario" @(Model.Bloqueado ? "disabled" : "")>INGRESAR</button>
+                <label for="Clave">Clave</label>
+                <div class="campo-clave">
+                    <input id="Clave" name="Clave" type="password" />
+                    <button type="button" class="ver-clave" onclick="alternarClave()" title="Mostrar u ocultar la clave">Ver</button>
+                </div>
 
-            @if (!string.IsNullOrEmpty(Model.Error))
-            {
-                <p class="mensaje-error">@Model.Error</p>
-            }
-        </form>
+                <button type="submit" class="boton boton-primario">INGRESAR</button>
+
+                @* Mensaje del servidor: clave incorrecta con intentos restantes, usuario bloqueado o falla de conexión. *@
+                @if (!string.IsNullOrEmpty(Model.Error))
+                {
+                    <p class="mensaje-error">@Model.Error</p>
+                }
+            </form>
+        </div>
     </section>
 </main>
 

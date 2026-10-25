@@ -12,7 +12,7 @@ namespace ec.edu.monster.ws
     [ServiceContract(Name = "WSEureka", Namespace = Constantes.NamespaceServicio)]
     public interface IWSEureka
     {
-        /// <summary>Devuelve el empleado si usuario y clave son correctos; si no, null.</summary>
+        /// <summary>Devuelve el empleado; si usuario o clave no coinciden responde un Fault con los intentos restantes.</summary>
         [OperationContract(Name = "login")]
         [FaultContract(typeof(ErrorServicio))]
         Empleado Login(string usuario, string clave);

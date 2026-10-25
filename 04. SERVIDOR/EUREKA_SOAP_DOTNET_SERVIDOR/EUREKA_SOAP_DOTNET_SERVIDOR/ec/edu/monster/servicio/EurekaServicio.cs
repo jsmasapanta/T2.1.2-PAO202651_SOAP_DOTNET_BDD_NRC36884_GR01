@@ -38,14 +38,70 @@ namespace ec.edu.monster.servicio
 
         // ---------- Autenticación ----------
 
-        /// <summary>Busca el empleado por usuario y compara la clave. Devuelve null si no coinciden.</summary>
+        private const int IntentosMaximos = 3;
+        private static readonly TimeSpan TiempoBloqueo = TimeSpan.FromMinutes(2);
+
+        /// <summary>Intentos fallidos por usuario (en minúsculas). Los clientes no cuentan nada: lo hace el servidor.</summary>
+        private readonly Dictionary<string, ControlIntentos> _intentos = new Dictionary<string, ControlIntentos>();
+
+        private class ControlIntentos
+        {
+            public int Fallidos;
+            public DateTime? BloqueadoHasta;
+        }
+
+        /// <summary>
+        /// Devuelve el empleado si usuario y clave son correctos. Si no, lanza ReglaNegocioException con el
+        /// mensaje para el usuario. Después de 3 intentos fallidos el usuario queda bloqueado 2 minutos.
+        /// </summary>
         public Empleado Login(string usuario, string clave)
         {
             if (string.IsNullOrWhiteSpace(usuario) || string.IsNullOrEmpty(clave))
             {
-                return null;
+                throw new ArgumentException("Ingrese usuario y clave.");
+            }
+            string llave = usuario.Trim().ToLowerInvariant();
+
+            lock (_intentos)
+            {
+                if (_intentos.TryGetValue(llave, out ControlIntentos control) && control.BloqueadoHasta > DateTime.Now)
+                {
+                    int segundos = (int)Math.Ceiling((control.BloqueadoHasta.Value - DateTime.Now).TotalSeconds);
+                    throw new ReglaNegocioException(
+                        "Usuario bloqueado por superar " + IntentosMaximos + " intentos. Intente de nuevo en " + segundos + " segundos.");
+                }
             }
 
+            Empleado empleado = BuscarEmpleado(usuario.Trim(), clave);
+
+            lock (_intentos)
+            {
+                if (empleado != null)
+                {
+                    _intentos.Remove(llave);
+                    return empleado;
+                }
+
+                if (!_intentos.TryGetValue(llave, out ControlIntentos control) || control.BloqueadoHasta != null)
+                {
+                    control = new ControlIntentos();
+                    _intentos[llave] = control;
+                }
+                control.Fallidos++;
+                if (control.Fallidos >= IntentosMaximos)
+                {
+                    control.BloqueadoHasta = DateTime.Now.Add(TiempoBloqueo);
+                    throw new ReglaNegocioException(
+                        "Se superaron los " + IntentosMaximos + " intentos. El usuario queda bloqueado " + TiempoBloqueo.TotalMinutes + " minutos.");
+                }
+                throw new ReglaNegocioException(
+                    "Usuario o clave incorrectos. Intentos restantes: " + (IntentosMaximos - control.Fallidos) + ".");
+            }
+        }
+
+        /// <summary>Busca el empleado por usuario y compara la clave. Devuelve null si no coinciden.</summary>
+        private Empleado BuscarEmpleado(string usuario, string clave)
+        {
             const string sql = @"
                 SELECT chr_emplcodigo, vch_emplusuario, vch_emplclave,
                        vch_emplnombre + ' ' + vch_emplpaterno AS nombre
@@ -55,7 +111,7 @@ namespace ec.edu.monster.servicio
             using (SqlConnection cn = _bd.AbrirConexion())
             using (var cmd = new SqlCommand(sql, cn))
             {
-                cmd.Parameters.Add("@usuario", SqlDbType.VarChar, 15).Value = usuario.Trim();
+                cmd.Parameters.Add("@usuario", SqlDbType.VarChar, 15).Value = usuario;
                 using (SqlDataReader dr = cmd.ExecuteReader())
                 {
                     if (!dr.Read())

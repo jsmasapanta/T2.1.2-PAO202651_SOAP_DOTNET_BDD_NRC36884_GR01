@@ -6,7 +6,7 @@
 EUREKA_SOAP_DOTNET_SERVIDOR/
 ├── ec/edu/monster/db/ConexionBD.cs          SINGLETON: lee "EurekaBank" de Web.config y abre conexiones
 ├── ec/edu/monster/modelo/Modelos.cs         Empleado, Cuenta, Movimiento, ErrorServicio (DataContract)
-├── ec/edu/monster/servicio/EurekaServicio.cs SINGLETON: login, consultas y transacciones (depósito, retiro, transferencia)
+├── ec/edu/monster/servicio/EurekaServicio.cs SINGLETON: login con 3 intentos y bloqueo de 2 min, validaciones, consultas y transacciones (depósito, retiro, transferencia)
 ├── ec/edu/monster/ws/IWSEureka.cs           contrato SOAP (namespace http://espe.edu.ec/eureka/)
 ├── ec/edu/monster/ws/WSEureka.svc.cs        implementación WCF: delega y convierte errores en SOAP Fault
 ├── ec/edu/monster/ws/WSEurekaAsmx.asmx.cs    las mismas operaciones como servicio ASMX (página con formularios de prueba)

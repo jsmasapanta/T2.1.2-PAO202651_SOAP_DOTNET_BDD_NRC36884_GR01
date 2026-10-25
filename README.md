@@ -6,7 +6,7 @@ Operaciones: **consultar cuenta y movimientos, depósito, retiro y transferencia
 
 | | |
 |---|---|
-| **Usuario de la app** | `monster` / `monster` (tabla `Empleado`, código `0012`) |
+| **Usuario de la app** | `monster` / `monster69` (tabla `Empleado`, código `0012`) |
 | **Login de SQL Server** | `monster` / `monster` (lo usa el servidor para conectarse) |
 | **Base de datos** | `EUREKABANK` en SQL Server local (`localhost`) |
 | **Servidor SOAP** | `http://localhost:8087/WSEureka.svc` (WSDL: `?wsdl`) |
@@ -99,14 +99,19 @@ public sealed class ConexionBD
 
 | Cliente | modelo | vista | controlador |
 |---|---|---|---|
-| CLICON | `TipoOperacion` | `VistaConsola` | `ControladorConsola` |
-| CLIESC | `TipoOperacion` | `FormLogin`, `FormPrincipal`, `PanelMovimientos`, `PanelOperacion` | `ControladorEureka` |
-| CLIWEB | `TipoOperacion`, `ViewModels.cs` | `vista/Acceso/Login`, `vista/Banco/Movimientos`, `vista/Banco/Operacion` | `AccesoController`, `BancoController` |
-| CLIMOV | `TipoOperacion` | `LoginPage`, `MenuPage`, `MovimientosPage`, `OperacionPage` | `ControladorEureka` |
+| CLICON | `Empleado`, `Cuenta`, `Movimiento`, `ErrorServicio`, `TipoOperacion` | `VistaConsola` | `ControladorConsola` |
+| CLIESC | `Empleado`, `Cuenta`, `Movimiento`, `ErrorServicio`, `TipoOperacion` | `FormLogin`, `FormPrincipal`, `PanelMovimientos`, `PanelOperacion` | `ControladorEureka` |
+| CLIWEB | `Empleado`, `Cuenta`, `Movimiento`, `ErrorServicio`, `TipoOperacion`, `ViewModels.cs` | `vista/Acceso/Login`, `vista/Banco/Movimientos`, `vista/Banco/Operacion` | `AccesoController`, `BancoController` |
+| CLIMOV | `Empleado`, `Cuenta`, `Movimiento`, `TipoOperacion` | `LoginPage`, `MenuPage`, `MovimientosPage`, `OperacionPage` | `ControladorEureka` |
 
 **Los clientes solo presentan; todo viene del servicio:**
-- **Datos y contrato:** `Empleado`, `Cuenta`, `Movimiento`, `ErrorServicio` y la interfaz `WSEureka` no se escriben en los clientes. Están en `servicio/WSEurekaReference.cs`, **generado desde el WSDL** (como *Agregar referencia de servicio*): con `SvcUtil.exe` en consola y escritorio, y con `dotnet-svcutil` en web y móvil. Si el servidor cambia, se vuelve a generar (el comando está al inicio de cada archivo).
-- **Reglas del banco:** el formato de la cuenta, el importe (mayor que cero, 2 decimales), las cuentas distintas, el saldo, la moneda y el estado los valida **solo el servidor**. El cliente solo comprueba que los campos no estén vacíos y que el importe sea un número (el contrato recibe un `decimal`), y muestra el mensaje del SOAP Fault.
+Igual que el proyecto de referencia del GR05, cada cliente tiene cuatro carpetas:
+- **`modelo/`**: `Empleado`, `Cuenta`, `Movimiento` (y `ErrorServicio`) con **solo get/set**, para recibir lo que devuelve el servicio.
+- **`servicio/`**: llama al servicio. Consola, escritorio y web usan `ChannelFactory<IWSEureka>` con la interfaz `servicio/IWSEureka.cs` (mismas 6 operaciones y namespace `http://espe.edu.ec/eureka/`); el móvil arma el sobre SOAP con `HttpClient` y llena los modelos.
+- **`controlador/`**: solo pasa las llamadas de la vista al servicio y guarda el empleado de la sesión.
+- **`vista/`**: las pantallas y el formato de los datos (`Formato`: dinero, títulos, colores).
+
+**Todo lo demás está en el servidor:** el login y los **3 intentos** (al tercero el usuario queda bloqueado 2 minutos), el formato de la cuenta, el importe (mayor que cero, 2 decimales), las cuentas distintas, el saldo, la moneda y el estado. El cliente solo convierte el importe a número (el contrato recibe un `decimal`) y muestra el mensaje del SOAP Fault.
 
 En la web las vistas también están en `ec/edu/monster/vista` (se configuró `RazorViewEngineOptions` en `Program.cs`).
 
@@ -158,7 +163,7 @@ Resultado: 6 cuentas, 38 movimientos, 12 empleados (incluido `monster`) y el log
 
 ## Paso 2 — Consola (`04. CLICON`)
 
-Abre `EUREKA_SOAP_DOTNET_CLICON.sln` en otra ventana → **Iniciar sin depurar** → `monster` / `monster`. Menú: **[1] Consultar cuenta y movimientos, [2] Depósito, [3] Retiro, [4] Transferencia, [0] Cerrar sesión**. La URL está en `App.config`.
+Abre `EUREKA_SOAP_DOTNET_CLICON.sln` en otra ventana → **Iniciar sin depurar** → `monster` / `monster69`. Menú: **[1] Consultar cuenta y movimientos, [2] Depósito, [3] Retiro, [4] Transferencia, [0] Cerrar sesión**. La URL está en `App.config`.
 
 ## Paso 3 — Escritorio (`04. CLIESC`)
 
@@ -166,7 +171,7 @@ Abre `EUREKA_SOAP_DOTNET_CLIESC.sln` → **Iniciar sin depurar** → login. Men�
 
 ## Paso 4 — Web (`04. CLIWEB`)
 
-Abre `EUREKA_SOAP_DOTNET_CLIWEB.sln` → perfil **EUREKA_SOAP_DOTNET_CLIWEB** → **Iniciar sin depurar** → `http://localhost:5087`. Si pide certificado SSL responde **No**. URL del servidor en `appsettings.json` (`ServicioSoap:Url`). Incluye 3 intentos de login, filtro `[RequiereSesion]` y `ValidateAntiForgeryToken`. Es *responsive*.
+Abre `EUREKA_SOAP_DOTNET_CLIWEB.sln` → perfil **EUREKA_SOAP_DOTNET_CLIWEB** → **Iniciar sin depurar** → `http://localhost:5087`. Si pide certificado SSL responde **No**. URL del servidor en `appsettings.json` (`ServicioSoap:Url`). Incluye filtro `[RequiereSesion]` y `ValidateAntiForgeryToken`. Es *responsive*.
 
 ## Paso 5 — Móvil (`04. CLIMOV`)
 
@@ -203,8 +208,9 @@ El script crea el sitio **EUREKA** en el puerto **8087**, abre el firewall y mue
 
 | # | Caso | Entrada | Resultado esperado |
 |---|---|---|---|
-| 1 | Login correcto | monster / monster | Entra al menú |
-| 2 | Login incorrecto | monster / otra | "Usuario o clave incorrectos" (3 intentos) |
+| 1 | Login correcto | monster / monster69 | Entra al menú |
+| 2 | Login incorrecto | monster / otra | "Usuario o clave incorrectos. Intentos restantes: 2." (lo cuenta el servidor) |
+| 2b | Tercer intento fallido | monster / otra (3 veces) | "Se superaron los 3 intentos. El usuario queda bloqueado 2 minutos." |
 | 3 | Consultar cuenta | 00100001 | Saldo 6,900.00 y 7 movimientos |
 | 4 | Cuenta inexistente | 99999999 | "La cuenta 99999999 no existe." |
 | 5 | Formato de cuenta | 123 | "La cuenta debe tener 8 dígitos" (lo responde el servidor) |

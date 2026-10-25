@@ -1,6 +1,4 @@
 using System;
-using ec.edu.monster.controlador;
-using ec.edu.monster.servicio;
 using ec.edu.monster.vista;
 
 namespace ec.edu.monster
@@ -12,8 +10,7 @@ namespace ec.edu.monster
             var vista = new VistaConsola();
             try
             {
-                var controlador = new ControladorConsola(vista, ClienteEureka.Instancia);
-                controlador.Iniciar();
+                vista.Iniciar();
             }
             catch (Exception ex)
             {

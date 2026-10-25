@@ -1,11 +1,11 @@
 # 04. CLIMOV — Cliente móvil (.NET MAUI Android, sucesor de Xamarin.Forms)
 
 ```
-ec/edu/monster/modelo/TipoOperacion.cs        opciones del menú
-ec/edu/monster/servicio/ClienteSoap.cs        ChannelFactory<WSEureka> (WCF, System.ServiceModel.Http) · SINGLETON
-ec/edu/monster/servicio/WSEurekaReference.cs  contrato y datos GENERADOS desde el WSDL (dotnet-svcutil)
-ec/edu/monster/controlador/ControladorEureka.cs  sesión y formato (sin reglas del banco) · SINGLETON
-ec/edu/monster/vista/LoginPage                login (3 intentos) + URL del servidor
+ec/edu/monster/modelo/                        Empleado, Cuenta, Movimiento (solo get/set) y TipoOperacion
+ec/edu/monster/servicio/ClienteSoap.cs        sobre SOAP con HttpClient; llena los modelos · SINGLETON
+ec/edu/monster/controlador/ControladorEureka.cs  solo pasa las llamadas y guarda la sesión · SINGLETON
+ec/edu/monster/vista/Formato.cs               dinero, títulos y colores
+ec/edu/monster/vista/LoginPage                login (mensajes e intentos del servidor) + URL + imagen
 ec/edu/monster/vista/MenuPage                 4 opciones + operaciones de la sesión
 ec/edu/monster/vista/MovimientosPage          saldo y movimientos de una cuenta
 ec/edu/monster/vista/OperacionPage            depósito, retiro o transferencia

@@ -3,17 +3,21 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using ec.edu.monster.controlador;
 using ec.edu.monster.modelo;
 using ec.edu.monster.servicio;
 
 namespace ec.edu.monster.vista
 {
     /// <summary>
-    /// Todo lo que se lee o escribe en la consola. No conoce al servidor.
+    /// Pantallas de la consola: pide los datos, se los pasa al controlador y muestra lo que devuelve
+    /// el servidor (datos o su mensaje de error). No tiene reglas del banco ni cuenta intentos de login.
     /// </summary>
     public class VistaConsola
     {
         private const int Ancho = 76;
+
+        private readonly ControladorConsola _controlador = new ControladorConsola();
 
         public VistaConsola()
         {
@@ -21,6 +25,112 @@ namespace ec.edu.monster.vista
             Console.InputEncoding = Encoding.UTF8;
             Console.Title = "EurekaBank - SOAP .NET";
         }
+
+        // ================= Flujo de pantallas =================
+
+        public void Iniciar()
+        {
+            if (!PantallaLogin())
+            {
+                return;
+            }
+            PantallaMenu();
+            MostrarEncabezado("Sesión finalizada. ¡Hasta pronto!");
+        }
+
+        /// <summary>El servidor decide si el login es correcto, cuenta los intentos y bloquea al usuario.</summary>
+        private bool PantallaLogin()
+        {
+            while (true)
+            {
+                MostrarEncabezado("INICIO DE SESIÓN");
+                MostrarServidor(_controlador.UrlServidor);
+                string usuario = PedirTexto("Usuario");
+                string clave = PedirClave("Clave");
+                try
+                {
+                    Empleado empleado = _controlador.IniciarSesion(usuario, clave);
+                    MostrarExito($"Bienvenido, {empleado.Nombre} (empleado {empleado.Codigo}).");
+                    Pausa();
+                    return true;
+                }
+                catch (ErrorServicioException ex)
+                {
+                    MostrarError(ex.Message);
+                }
+                if (!PreguntarSiNo("¿Intentar de nuevo?"))
+                {
+                    return false;
+                }
+            }
+        }
+
+        private void PantallaMenu()
+        {
+            var opciones = new List<string> { "Consultar cuenta y movimientos", "Depósito", "Retiro", "Transferencia" };
+            while (true)
+            {
+                MostrarEncabezado($"MENÚ PRINCIPAL · {_controlador.Empleado.Nombre}");
+                switch (PedirOpcion(opciones, "Cerrar sesión"))
+                {
+                    case 0: _controlador.CerrarSesion(); return;
+                    case 1: PantallaMovimientos(); break;
+                    case 2: PantallaOperacion(TipoOperacion.Deposito); break;
+                    case 3: PantallaOperacion(TipoOperacion.Retiro); break;
+                    case 4: PantallaOperacion(TipoOperacion.Transferencia); break;
+                }
+            }
+        }
+
+        private void PantallaMovimientos()
+        {
+            do
+            {
+                MostrarEncabezado("CONSULTAR CUENTA Y MOVIMIENTOS");
+                string cuenta = PedirCuenta("Número de cuenta");
+                try
+                {
+                    MostrarCuenta(_controlador.ConsultarCuenta(cuenta));
+                    MostrarMovimientos(_controlador.TraerMovimientos(cuenta));
+                }
+                catch (ErrorServicioException ex)
+                {
+                    MostrarError(ex.Message);
+                }
+            }
+            while (PreguntarSiNo("¿Consultar otra cuenta?"));
+        }
+
+        private void PantallaOperacion(TipoOperacion tipo)
+        {
+            do
+            {
+                MostrarEncabezado(Titulo(tipo).ToUpperInvariant());
+                string cuenta = PedirCuenta(tipo == TipoOperacion.Transferencia ? "Cuenta de origen" : "Número de cuenta");
+                string destino = tipo == TipoOperacion.Transferencia ? PedirCuenta("Cuenta de destino") : null;
+                decimal importe = PedirImporte("Importe");
+
+                if (!PreguntarSiNo($"¿Confirma {Titulo(tipo).ToLowerInvariant()} de {Dinero(importe)}?"))
+                {
+                    MostrarError("Operación cancelada.");
+                    continue;
+                }
+                try
+                {
+                    decimal saldo = tipo == TipoOperacion.Deposito ? _controlador.RegistrarDeposito(cuenta, importe)
+                                  : tipo == TipoOperacion.Retiro ? _controlador.RegistrarRetiro(cuenta, importe)
+                                  : _controlador.RegistrarTransferencia(cuenta, destino, importe);
+                    MostrarOperacionExitosa(tipo, cuenta, destino, importe, saldo);
+                }
+                catch (ErrorServicioException ex)
+                {
+                    MostrarError(ex.Message);
+                }
+            }
+            while (PreguntarSiNo("¿Realizar otra operación de este tipo?"));
+        }
+
+        // ================= Entrada y salida =================
 
         public void MostrarEncabezado(string subtitulo)
         {

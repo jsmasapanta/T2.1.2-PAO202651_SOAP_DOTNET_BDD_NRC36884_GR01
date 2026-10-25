@@ -31,7 +31,7 @@ namespace ec.edu.monster.vista
             Color color = Tema.ColorDe(tipo);
             bool esTransferencia = tipo == TipoOperacion.Transferencia;
 
-            var titulo = Tema.Etiqueta(ControladorEureka.Titulo(tipo), 20f, FontStyle.Bold, color);
+            var titulo = Tema.Etiqueta(Formato.Titulo(tipo), 20f, FontStyle.Bold, color);
             titulo.Location = new Point(30, 20);
             var ayuda = Tema.Etiqueta(Ayuda(tipo), 9.5f, FontStyle.Regular, Tema.TextoSuave);
             ayuda.Location = new Point(32, 62);
@@ -65,7 +65,7 @@ namespace ec.edu.monster.vista
             tarjeta.Controls.Add(_txtImporte);
             y += 72;
 
-            _btnRegistrar = Tema.Boton("REGISTRAR " + ControladorEureka.Titulo(tipo).ToUpperInvariant(), color);
+            _btnRegistrar = Tema.Boton("REGISTRAR " + Formato.Titulo(tipo).ToUpperInvariant(), color);
             _btnRegistrar.Location = new Point(22, y);
             _btnRegistrar.Width = 420;
             _btnRegistrar.Click += (s, e) => Registrar();
@@ -140,9 +140,7 @@ namespace ec.edu.monster.vista
 
             // Las reglas (formato de cuenta, importe, cuentas distintas, saldo) las valida el servidor.
             string error = null;
-            if (cuenta.Length == 0 || (_tipo == TipoOperacion.Transferencia && destino.Length == 0))
-                error = "Complete los números de cuenta.";
-            else if (!ControladorEureka.IntentarLeerImporte(_txtImporte.Text, out _))
+            if (!Formato.IntentarLeerImporte(_txtImporte.Text, out _))
                 error = "Escriba el importe con números (ejemplo: 150 o 75.50).";
             if (error != null)
             {
@@ -150,11 +148,11 @@ namespace ec.edu.monster.vista
                 return;
             }
 
-            ControladorEureka.IntentarLeerImporte(_txtImporte.Text, out decimal importe);
-            string titulo = ControladorEureka.Titulo(_tipo);
+            Formato.IntentarLeerImporte(_txtImporte.Text, out decimal importe);
+            string titulo = Formato.Titulo(_tipo);
             string texto = _tipo == TipoOperacion.Transferencia
-                ? $"¿Transferir {ControladorEureka.Dinero(importe)} de la cuenta {cuenta} a la cuenta {destino}?"
-                : $"¿Registrar {titulo.ToLowerInvariant()} de {ControladorEureka.Dinero(importe)} en la cuenta {cuenta}?";
+                ? $"¿Transferir {Formato.Dinero(importe)} de la cuenta {cuenta} a la cuenta {destino}?"
+                : $"¿Registrar {titulo.ToLowerInvariant()} de {Formato.Dinero(importe)} en la cuenta {cuenta}?";
             if (MessageBox.Show(this, texto, "Confirmar " + titulo.ToLowerInvariant(), MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
             {
                 return;
@@ -164,13 +162,15 @@ namespace ec.edu.monster.vista
             UseWaitCursor = true;
             try
             {
-                decimal saldo = await _controlador.RegistrarAsync(_tipo, cuenta, destino, importe);
+                decimal saldo = _tipo == TipoOperacion.Deposito ? await _controlador.RegistrarDepositoAsync(cuenta, importe)
+                              : _tipo == TipoOperacion.Retiro ? await _controlador.RegistrarRetiroAsync(cuenta, importe)
+                              : await _controlador.RegistrarTransferenciaAsync(cuenta, destino, importe);
                 _lblResultado.ForeColor = Tema.ColorDe(_tipo);
                 _lblDetalle.ForeColor = Tema.TextoSuave;
                 _lblResultado.Text = $"{titulo} registrad{(_tipo == TipoOperacion.Transferencia ? "a" : "o")}";
-                _lblDetalle.Text = $"Importe: {ControladorEureka.Dinero(importe)}\nNuevo saldo de {cuenta}: {ControladorEureka.Dinero(saldo)}";
+                _lblDetalle.Text = $"Importe: {Formato.Dinero(importe)}\nNuevo saldo de {cuenta}: {Formato.Dinero(saldo)}";
                 string linea = $"{DateTime.Now:HH:mm:ss}  {cuenta}" + (destino != null ? $" → {destino}" : "") +
-                               $"  {ControladorEureka.Dinero(importe)}  (saldo {ControladorEureka.Dinero(saldo)})";
+                               $"  {Formato.Dinero(importe)}  (saldo {Formato.Dinero(saldo)})";
                 _lstSesion.Items.Insert(0, linea);
                 _txtImporte.Clear();
                 _txtImporte.Focus();

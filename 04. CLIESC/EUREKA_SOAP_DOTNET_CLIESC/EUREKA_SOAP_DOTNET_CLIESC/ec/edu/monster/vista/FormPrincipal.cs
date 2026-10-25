@@ -48,9 +48,18 @@ namespace ec.edu.monster.vista
             foreach (TipoOperacion tipo in new[] { TipoOperacion.Deposito, TipoOperacion.Retiro, TipoOperacion.Transferencia })
             {
                 TipoOperacion actual = tipo;
-                AgregarBotonMenu(menu, ControladorEureka.Titulo(tipo), Tema.IconoDe(tipo), Tema.ColorDe(tipo), ref y,
+                AgregarBotonMenu(menu, Formato.Titulo(tipo), Tema.IconoDe(tipo), Tema.ColorDe(tipo), ref y,
                     () => new PanelOperacion(actual, _controlador));
             }
+
+            var imagen = new PictureBox
+            {
+                Location = new Point(20, y + 10),
+                Size = new Size(190, 160),
+                SizeMode = PictureBoxSizeMode.Zoom,
+                Image = Formato.Monster()
+            };
+            menu.Controls.Add(imagen);
 
             var btnSalir = Tema.Boton("Cerrar sesión", Color.FromArgb(160, 50, 40));
             btnSalir.Location = new Point(25, 520);

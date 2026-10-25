@@ -19,19 +19,14 @@ public partial class MovimientosPage : ContentPage
     {
         string cuenta = (TxtCuenta.Text ?? "").Trim();
         TxtCuenta.Unfocus(); // oculta el teclado para que se vea la lista
-        if (cuenta.Length == 0)
-        {
-            MostrarError("Escriba el número de cuenta.");
-            return;
-        }
-
         Ocupado(true);
         try
         {
-            var (datos, movimientos) = await _controlador.ConsultarAsync(cuenta);
+            Cuenta datos = await _controlador.ConsultarCuentaAsync(cuenta);
+            Movimiento[] movimientos = await _controlador.TraerMovimientosAsync(cuenta);
             LblCliente.Text = $"{datos.Codigo} · {datos.Cliente}";
             LblDetalle.Text = $"{datos.Moneda} · Sucursal {datos.Sucursal} · {datos.Estado}";
-            LblSaldo.Text = ControladorEureka.Dinero(datos.Saldo);
+            LblSaldo.Text = Formato.Dinero(datos.Saldo);
             TarjetaCuenta.IsVisible = true;
             MostrarMovimientos(movimientos);
         }
@@ -62,11 +57,11 @@ public partial class MovimientosPage : ContentPage
             izquierda.Children.Add(new Label { Text = $"{m.Fecha:dd/MM/yyyy HH:mm} · emp. {m.Empleado}{referencia}", FontSize = 12, TextColor = Color.FromArgb("#6C757D") });
             var importe = new Label
             {
-                Text = (ControladorEureka.EsIngreso(m) ? "+" : "−") + ControladorEureka.Dinero(m.Importe),
+                Text = (Formato.EsIngreso(m) ? "+" : "−") + Formato.Dinero(m.Importe),
                 FontAttributes = FontAttributes.Bold,
                 FontSize = 16,
                 VerticalOptions = LayoutOptions.Center,
-                TextColor = Color.FromArgb(ControladorEureka.EsIngreso(m) ? "#198754" : "#C0392B")
+                TextColor = Color.FromArgb(Formato.EsIngreso(m) ? "#198754" : "#C0392B")
             };
             fila.Add(izquierda, 0, 0);
             fila.Add(importe, 1, 0);
