@@ -138,15 +138,12 @@ namespace ec.edu.monster.vista
             string cuenta = _txtCuenta.Text.Trim();
             string destino = _txtDestino?.Text.Trim();
 
+            // Las reglas (formato de cuenta, importe, cuentas distintas, saldo) las valida el servidor.
             string error = null;
-            if (!ControladorEureka.EsCuentaValida(cuenta))
-                error = "La cuenta debe tener 8 dígitos (ejemplo: 00100001).";
-            else if (_tipo == TipoOperacion.Transferencia && !ControladorEureka.EsCuentaValida(destino))
-                error = "La cuenta de destino debe tener 8 dígitos.";
-            else if (_tipo == TipoOperacion.Transferencia && cuenta == destino)
-                error = "La cuenta de origen y la de destino deben ser distintas.";
+            if (cuenta.Length == 0 || (_tipo == TipoOperacion.Transferencia && destino.Length == 0))
+                error = "Complete los números de cuenta.";
             else if (!ControladorEureka.IntentarLeerImporte(_txtImporte.Text, out _))
-                error = "Ingrese un importe mayor que cero con hasta 2 decimales (ejemplo: 150 o 75.50).";
+                error = "Escriba el importe con números (ejemplo: 150 o 75.50).";
             if (error != null)
             {
                 MostrarError(error);

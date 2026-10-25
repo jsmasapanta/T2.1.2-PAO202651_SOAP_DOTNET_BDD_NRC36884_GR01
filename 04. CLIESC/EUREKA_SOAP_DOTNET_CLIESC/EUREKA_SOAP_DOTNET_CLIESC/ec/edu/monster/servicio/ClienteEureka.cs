@@ -1,6 +1,5 @@
 using System;
 using System.ServiceModel;
-using ec.edu.monster.modelo;
 
 namespace ec.edu.monster.servicio
 {
@@ -11,10 +10,10 @@ namespace ec.edu.monster.servicio
     }
 
     /// <summary>
-    /// Envuelve el canal WCF: abre la conexión con el endpoint de App.config
-    /// y traduce cualquier falla técnica a un mensaje entendible.
-    /// Patrón Singleton: toda la aplicación usa ClienteEureka.Instancia,
-    /// así la ChannelFactory se crea una sola vez.
+    /// Punto único de acceso al servicio SOAP. Usa el contrato WSEureka generado desde el WSDL
+    /// (WSEurekaReference.cs) con el endpoint de App.config, y traduce las fallas a un mensaje entendible.
+    /// El cliente no valida reglas del banco: las valida el servidor y su mensaje llega en el SOAP Fault.
+    /// Patrón Singleton: toda la aplicación usa ClienteEureka.Instancia (una sola ChannelFactory).
     /// </summary>
     public sealed class ClienteEureka
     {
@@ -26,35 +25,35 @@ namespace ec.edu.monster.servicio
 
         public static ClienteEureka Instancia => _instancia.Value;
 
-        private readonly ChannelFactory<IWSEureka> _fabrica;
+        private readonly ChannelFactory<WSEureka> _fabrica;
 
         // Constructor privado: solo la propia clase crea la instancia.
         private ClienteEureka()
         {
-            _fabrica = new ChannelFactory<IWSEureka>(NombreEndpoint);
+            _fabrica = new ChannelFactory<WSEureka>(NombreEndpoint);
         }
 
         public string UrlServidor => _fabrica.Endpoint.Address.Uri.ToString();
 
-        public Empleado Login(string usuario, string clave) => Invocar(c => c.Login(usuario, clave));
+        public Empleado Login(string usuario, string clave) => Invocar(c => c.login(usuario, clave));
 
-        public Cuenta ConsultarCuenta(string cuenta) => Invocar(c => c.ConsultarCuenta(cuenta));
+        public Cuenta ConsultarCuenta(string cuenta) => Invocar(c => c.consultarCuenta(cuenta));
 
         public Movimiento[] TraerMovimientos(string cuenta) =>
-            Invocar(c => c.TraerMovimientos(cuenta)) ?? new Movimiento[0];
+            Invocar(c => c.traerMovimientos(cuenta)) ?? new Movimiento[0];
 
         public decimal RegistrarDeposito(string cuenta, decimal importe, string codEmpleado) =>
-            Invocar(c => c.RegistrarDeposito(cuenta, importe, codEmpleado));
+            Invocar(c => c.registrarDeposito(cuenta, importe, codEmpleado));
 
         public decimal RegistrarRetiro(string cuenta, decimal importe, string codEmpleado) =>
-            Invocar(c => c.RegistrarRetiro(cuenta, importe, codEmpleado));
+            Invocar(c => c.registrarRetiro(cuenta, importe, codEmpleado));
 
         public decimal RegistrarTransferencia(string origen, string destino, decimal importe, string codEmpleado) =>
-            Invocar(c => c.RegistrarTransferencia(origen, destino, importe, codEmpleado));
+            Invocar(c => c.registrarTransferencia(origen, destino, importe, codEmpleado));
 
-        private T Invocar<T>(Func<IWSEureka, T> llamada)
+        private T Invocar<T>(Func<WSEureka, T> llamada)
         {
-            IWSEureka canal = _fabrica.CreateChannel();
+            WSEureka canal = _fabrica.CreateChannel();
             var comunicacion = (ICommunicationObject)canal;
             try
             {

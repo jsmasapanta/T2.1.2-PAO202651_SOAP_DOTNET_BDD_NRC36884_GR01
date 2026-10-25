@@ -1,8 +1,4 @@
-using System.Globalization;
-using System.Net.Sockets;
-using System.Security;
-using System.Text;
-using System.Xml.Linq;
+using System.ServiceModel;
 using ec.edu.monster.modelo;
 
 namespace ec.edu.monster.servicio;
@@ -14,15 +10,13 @@ public class ErrorServicioException : Exception
 }
 
 /// <summary>
-/// Cliente SOAP 1.1 hecho a mano con HttpClient (sin referencias de servicio).
-/// Por cada operación arma el sobre SOAP, lo envía por POST con la cabecera SOAPAction
-/// y lee &lt;operacionResult&gt; o, si es un SOAP Fault, el &lt;Mensaje&gt; de ErrorServicio.
-/// Patrón Singleton: toda la app usa ClienteSoap.Instancia (un solo HttpClient).
+/// Punto único de acceso al servicio SOAP. Usa el contrato WSEureka generado desde el WSDL
+/// (WSEurekaReference.cs, el mismo de la web) y traduce las fallas a un mensaje entendible.
+/// El cliente no valida reglas del banco: las valida el servidor y su mensaje llega en el SOAP Fault.
+/// Patrón Singleton: toda la app usa ClienteSoap.Instancia.
 /// </summary>
 public sealed class ClienteSoap
 {
-    public const string Namespace = "http://espe.edu.ec/eureka/";
-    private const string Contrato = "WSEureka";
     private const string ClavePreferencia = "url_servidor_eureka";
 
     // 10.0.2.2 es la PC vista desde el emulador; en un celular real se cambia por la IP de la PC.
@@ -32,13 +26,11 @@ public sealed class ClienteSoap
 
     public static ClienteSoap Instancia => _instancia.Value;
 
-    private readonly HttpClient _http;
+    private ChannelFactory<WSEureka>? _fabrica;
+    private string? _urlFabrica;
 
     // Constructor privado: solo la propia clase crea la instancia.
-    private ClienteSoap()
-    {
-        _http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
-    }
+    private ClienteSoap() { }
 
     /// <summary>URL del servicio; se guarda en el teléfono para no escribirla cada vez.</summary>
     public string Url
@@ -47,141 +39,79 @@ public sealed class ClienteSoap
         set => Preferences.Default.Set(ClavePreferencia, value.Trim());
     }
 
-    /// <summary>Devuelve el empleado o null si usuario/clave no coinciden (loginResult llega con i:nil).</summary>
-    public async Task<Empleado?> LoginAsync(string usuario, string clave)
-    {
-        XElement? r = await InvocarAsync("login", ("usuario", usuario), ("clave", clave));
-        if (r == null || !r.HasElements)
-        {
-            return null;
-        }
-        return new Empleado(Texto(r, "Codigo"), Texto(r, "Usuario"), Texto(r, "Nombre"));
-    }
+    /// <summary>Devuelve el empleado o null si usuario y clave no coinciden.</summary>
+    public Task<Empleado?> LoginAsync(string usuario, string clave) =>
+        InvocarAsync<Empleado?>(async c => await c.loginAsync(usuario, clave));
 
-    public async Task<Cuenta> ConsultarCuentaAsync(string cuenta)
-    {
-        XElement r = await InvocarAsync("consultarCuenta", ("cuenta", cuenta))
-                     ?? throw new ErrorServicioException("Respuesta vacía del servidor.");
-        return new Cuenta(Texto(r, "Codigo"), Texto(r, "Cliente"), Texto(r, "Moneda"), Texto(r, "Sucursal"),
-            Decimal(Texto(r, "Saldo")), Texto(r, "Estado"), DateTime.Parse(Texto(r, "FechaCreacion"), CultureInfo.InvariantCulture),
-            int.Parse(Texto(r, "NumeroMovimientos"), CultureInfo.InvariantCulture));
-    }
+    public Task<Cuenta> ConsultarCuentaAsync(string cuenta) =>
+        InvocarAsync(c => c.consultarCuentaAsync(cuenta));
 
-    public async Task<List<Movimiento>> TraerMovimientosAsync(string cuenta)
-    {
-        XElement? r = await InvocarAsync("traerMovimientos", ("cuenta", cuenta));
-        var lista = new List<Movimiento>();
-        if (r == null)
-        {
-            return lista;
-        }
-        foreach (XElement m in r.Elements().Where(e => e.Name.LocalName == "Movimiento"))
-        {
-            lista.Add(new Movimiento(
-                int.Parse(Texto(m, "Numero"), CultureInfo.InvariantCulture),
-                DateTime.Parse(Texto(m, "Fecha"), CultureInfo.InvariantCulture),
-                Texto(m, "Tipo"), Texto(m, "Accion"), Decimal(Texto(m, "Importe")),
-                Texto(m, "Empleado"), Texto(m, "CuentaReferencia")));
-        }
-        return lista;
-    }
+    public async Task<Movimiento[]> TraerMovimientosAsync(string cuenta) =>
+        await InvocarAsync(c => c.traerMovimientosAsync(cuenta)) ?? Array.Empty<Movimiento>();
 
     /// <summary>Registra la operación y devuelve el nuevo saldo (de la cuenta de origen en transferencias).</summary>
-    public async Task<decimal> RegistrarAsync(TipoOperacion tipo, string cuenta, string? destino, decimal importe, string codEmpleado)
-    {
-        string monto = importe.ToString(CultureInfo.InvariantCulture);
-        XElement? r = tipo switch
+    public Task<decimal> RegistrarAsync(TipoOperacion tipo, string cuenta, string? destino, decimal importe, string codEmpleado) =>
+        tipo switch
         {
-            TipoOperacion.Deposito => await InvocarAsync("registrarDeposito",
-                ("cuenta", cuenta), ("importe", monto), ("codEmpleado", codEmpleado)),
-            TipoOperacion.Retiro => await InvocarAsync("registrarRetiro",
-                ("cuenta", cuenta), ("importe", monto), ("codEmpleado", codEmpleado)),
-            _ => await InvocarAsync("registrarTransferencia",
-                ("cuentaOrigen", cuenta), ("cuentaDestino", destino ?? ""), ("importe", monto), ("codEmpleado", codEmpleado))
+            TipoOperacion.Deposito => InvocarAsync(c => c.registrarDepositoAsync(cuenta, importe, codEmpleado)),
+            TipoOperacion.Retiro => InvocarAsync(c => c.registrarRetiroAsync(cuenta, importe, codEmpleado)),
+            _ => InvocarAsync(c => c.registrarTransferenciaAsync(cuenta, destino ?? "", importe, codEmpleado))
         };
-        return Decimal(r?.Value ?? "0");
-    }
 
-    /// <summary>Envía la petición y devuelve el elemento &lt;operacionResult&gt; (null si llegó vacío).</summary>
-    private async Task<XElement?> InvocarAsync(string operacion, params (string Nombre, string Valor)[] parametros)
+    /// <summary>La ChannelFactory se crea una vez por URL (se vuelve a crear solo si el usuario cambia la URL).</summary>
+    private ChannelFactory<WSEureka> Fabrica()
     {
         string url = Url;
-        if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? destino))
+        if (_fabrica == null || _urlFabrica != url)
         {
-            throw new ErrorServicioException($"La URL del servidor no es válida: {url}");
+            if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? destino))
+            {
+                throw new ErrorServicioException($"La URL del servidor no es válida: {url}");
+            }
+            _fabrica?.Abort();
+            var binding = new BasicHttpBinding
+            {
+                OpenTimeout = TimeSpan.FromSeconds(10),
+                SendTimeout = TimeSpan.FromSeconds(20),
+                ReceiveTimeout = TimeSpan.FromSeconds(20),
+                MaxReceivedMessageSize = 10 * 1024 * 1024
+            };
+            _fabrica = new ChannelFactory<WSEureka>(binding, new EndpointAddress(destino));
+            _urlFabrica = url;
         }
-
-        var peticion = new HttpRequestMessage(HttpMethod.Post, destino)
-        {
-            Content = new StringContent(ConstruirSobre(operacion, parametros), Encoding.UTF8, "text/xml")
-        };
-        peticion.Headers.Add("SOAPAction", $"\"{Namespace}{Contrato}/{operacion}\"");
-
-        try
-        {
-            using HttpResponseMessage respuesta = await _http.SendAsync(peticion);
-            string cuerpo = await respuesta.Content.ReadAsStringAsync();
-            return LeerRespuesta(cuerpo, (int)respuesta.StatusCode, operacion);
-        }
-        catch (ErrorServicioException)
-        {
-            throw;
-        }
-        catch (TaskCanceledException)
-        {
-            throw new ErrorServicioException("El servidor tardó demasiado en responder. Intente de nuevo.");
-        }
-        catch (Exception e) when (e is HttpRequestException || e is SocketException || e is IOException)
-        {
-            throw new ErrorServicioException(
-                $"No se pudo conectar con el servidor en {url}. Verifique que esté encendido, la IP y que estén en la misma red WiFi.");
-        }
+        return _fabrica;
     }
 
-    private static string ConstruirSobre(string operacion, (string Nombre, string Valor)[] parametros)
+    private async Task<T> InvocarAsync<T>(Func<WSEureka, Task<T>> llamada)
     {
-        var cuerpo = new StringBuilder();
-        foreach (var (nombre, valor) in parametros)
-        {
-            cuerpo.Append($"<{nombre}>{SecurityElement.Escape(valor)}</{nombre}>");
-        }
-        return "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
-            + "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\">"
-            + $"<s:Body><{operacion} xmlns=\"{Namespace}\">{cuerpo}</{operacion}></s:Body>"
-            + "</s:Envelope>";
-    }
-
-    private static XElement? LeerRespuesta(string xml, int codigoHttp, string operacion)
-    {
-        XDocument documento;
+        WSEureka canal = Fabrica().CreateChannel();
+        var comunicacion = (ICommunicationObject)canal;
         try
         {
-            documento = XDocument.Parse(xml);
-        }
-        catch (Exception)
-        {
-            throw new ErrorServicioException($"Respuesta inesperada del servidor (HTTP {codigoHttp}).");
-        }
-
-        XElement? Buscar(string nombre) =>
-            documento.Descendants().FirstOrDefault(e => e.Name.LocalName == nombre);
-
-        XElement? resultado = Buscar(operacion + "Result");
-        if (resultado != null)
-        {
+            T resultado = await llamada(canal);
+            comunicacion.Close();
             return resultado;
         }
-        if (Buscar(operacion + "Response") != null)
+        catch (FaultException<ErrorServicio> ex)
         {
-            return null;
+            comunicacion.Abort();
+            throw new ErrorServicioException(ex.Detail.Mensaje ?? ex.Message);
         }
-        throw new ErrorServicioException(
-            Buscar("Mensaje")?.Value ?? Buscar("faultstring")?.Value ?? $"Respuesta inesperada del servidor (HTTP {codigoHttp}).");
+        catch (FaultException ex)
+        {
+            comunicacion.Abort();
+            throw new ErrorServicioException("El servidor rechazó la petición: " + ex.Message);
+        }
+        catch (TimeoutException)
+        {
+            comunicacion.Abort();
+            throw new ErrorServicioException("El servidor tardó demasiado en responder. Intente de nuevo.");
+        }
+        catch (CommunicationException)
+        {
+            comunicacion.Abort();
+            throw new ErrorServicioException(
+                $"No se pudo conectar con el servidor en {Url}. Verifique que esté encendido, la IP y que estén en la misma red WiFi.");
+        }
     }
-
-    private static string Texto(XElement padre, string hijo) =>
-        padre.Elements().FirstOrDefault(e => e.Name.LocalName == hijo)?.Value.Trim() ?? "";
-
-    private static decimal Decimal(string texto) =>
-        decimal.Parse(texto, NumberStyles.Float, CultureInfo.InvariantCulture);
 }

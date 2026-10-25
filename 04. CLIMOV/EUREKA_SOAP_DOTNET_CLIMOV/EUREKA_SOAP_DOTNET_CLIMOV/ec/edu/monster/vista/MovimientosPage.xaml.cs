@@ -19,9 +19,9 @@ public partial class MovimientosPage : ContentPage
     {
         string cuenta = (TxtCuenta.Text ?? "").Trim();
         TxtCuenta.Unfocus(); // oculta el teclado para que se vea la lista
-        if (!ControladorEureka.EsCuentaValida(cuenta))
+        if (cuenta.Length == 0)
         {
-            MostrarError("La cuenta debe tener 8 dígitos (ejemplo: 00100001).");
+            MostrarError("Escriba el número de cuenta.");
             return;
         }
 
@@ -48,9 +48,9 @@ public partial class MovimientosPage : ContentPage
         }
     }
 
-    private void MostrarMovimientos(List<Movimiento> movimientos)
+    private void MostrarMovimientos(Movimiento[] movimientos)
     {
-        LblTituloLista.Text = $"Movimientos ({movimientos.Count})";
+        LblTituloLista.Text = $"Movimientos ({movimientos.Length})";
         LblTituloLista.IsVisible = true;
         ListaMovimientos.Children.Clear();
         foreach (Movimiento m in movimientos)
@@ -62,11 +62,11 @@ public partial class MovimientosPage : ContentPage
             izquierda.Children.Add(new Label { Text = $"{m.Fecha:dd/MM/yyyy HH:mm} · emp. {m.Empleado}{referencia}", FontSize = 12, TextColor = Color.FromArgb("#6C757D") });
             var importe = new Label
             {
-                Text = (m.EsIngreso ? "+" : "−") + ControladorEureka.Dinero(m.Importe),
+                Text = (ControladorEureka.EsIngreso(m) ? "+" : "−") + ControladorEureka.Dinero(m.Importe),
                 FontAttributes = FontAttributes.Bold,
                 FontSize = 16,
                 VerticalOptions = LayoutOptions.Center,
-                TextColor = Color.FromArgb(m.EsIngreso ? "#198754" : "#C0392B")
+                TextColor = Color.FromArgb(ControladorEureka.EsIngreso(m) ? "#198754" : "#C0392B")
             };
             fila.Add(izquierda, 0, 0);
             fila.Add(importe, 1, 0);
@@ -79,7 +79,7 @@ public partial class MovimientosPage : ContentPage
                 StrokeShape = new RoundRectangle { CornerRadius = 10 }
             });
         }
-        if (movimientos.Count == 0)
+        if (movimientos.Length == 0)
         {
             ListaMovimientos.Children.Add(new Label { Text = "La cuenta no tiene movimientos.", TextColor = Color.FromArgb("#6C757D") });
         }

@@ -42,9 +42,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ec\edu\monster\controlador\ControladorEureka.cs" />
-    <Compile Include="ec\edu\monster\modelo\Modelos.cs" />
+    <Compile Include="ec\edu\monster\modelo\TipoOperacion.cs" />
     <Compile Include="ec\edu\monster\servicio\ClienteEureka.cs" />
-    <Compile Include="ec\edu\monster\servicio\IWSEureka.cs" />
+    <Compile Include="ec\edu\monster\servicio\WSEurekaReference.cs" />
     <Compile Include="ec\edu\monster\vista\FormLogin.cs">
       <SubType>Form</SubType>
     </Compile>

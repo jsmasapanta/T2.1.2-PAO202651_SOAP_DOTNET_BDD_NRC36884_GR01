@@ -7,6 +7,8 @@ namespace ec.edu.monster.controlador
 {
     /// <summary>
     /// Flujo de la aplicación: login → menú → consulta de movimientos, depósito, retiro o transferencia.
+    /// No aplica reglas del banco (formato de cuenta, importe, saldo...): las valida el servidor
+    /// y el controlador solo muestra su mensaje.
     /// </summary>
     public class ControladorConsola
     {
@@ -118,11 +120,6 @@ namespace ec.edu.monster.controlador
                 _vista.MostrarEncabezado(VistaConsola.Titulo(tipo).ToUpperInvariant());
                 string cuenta = _vista.PedirCuenta(tipo == TipoOperacion.Transferencia ? "Cuenta de origen" : "Número de cuenta");
                 string destino = tipo == TipoOperacion.Transferencia ? _vista.PedirCuenta("Cuenta de destino") : null;
-                if (destino == cuenta)
-                {
-                    _vista.MostrarError("La cuenta de origen y la de destino deben ser distintas.");
-                    continue;
-                }
                 decimal importe = _vista.PedirImporte("Importe");
 
                 if (!_vista.PreguntarSiNo($"¿Confirma {VistaConsola.Titulo(tipo).ToLowerInvariant()} de {VistaConsola.Dinero(importe)}?"))

@@ -40,15 +40,12 @@ public partial class OperacionPage : ContentPage
         decimal? importe = ControladorEureka.LeerImporte(TxtImporte.Text);
         TxtCuenta.Unfocus(); TxtDestino.Unfocus(); TxtImporte.Unfocus(); // oculta el teclado para ver el resultado
 
+        // Las reglas (formato de cuenta, importe, cuentas distintas, saldo) las valida el servidor.
         string? error = null;
-        if (!ControladorEureka.EsCuentaValida(cuenta))
-            error = "La cuenta debe tener 8 dígitos (ejemplo: 00100001).";
-        else if (destino != null && !ControladorEureka.EsCuentaValida(destino))
-            error = "La cuenta de destino debe tener 8 dígitos.";
-        else if (destino != null && destino == cuenta)
-            error = "La cuenta de origen y la de destino deben ser distintas.";
+        if (cuenta.Length == 0 || destino?.Length == 0)
+            error = "Complete los números de cuenta.";
         else if (importe == null)
-            error = "Ingrese un importe mayor que cero con hasta 2 decimales (ejemplo: 150 o 75,50).";
+            error = "Escriba el importe con números (ejemplo: 150 o 75,50).";
         if (error != null)
         {
             MostrarError(error);

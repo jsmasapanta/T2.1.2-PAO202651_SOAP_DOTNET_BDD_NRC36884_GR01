@@ -10,12 +10,14 @@ public class ErrorServicioException : Exception
 }
 
 /// <summary>
-/// Envuelve el canal WCF. La URL viene de appsettings.json ("ServicioSoap:Url").
+/// Punto único de acceso al servicio SOAP. Usa el contrato WSEureka generado desde el WSDL
+/// (WSEurekaReference.cs); la URL viene de appsettings.json ("ServicioSoap:Url").
+/// El cliente no valida reglas del banco: las valida el servidor y su mensaje llega en el SOAP Fault.
 /// Se registra como Singleton en Program.cs: la ChannelFactory se crea una sola vez y es segura entre hilos.
 /// </summary>
 public class ClienteEureka : IDisposable
 {
-    private readonly ChannelFactory<IWSEureka> _fabrica;
+    private readonly ChannelFactory<WSEureka> _fabrica;
 
     public ClienteEureka(IConfiguration configuracion)
     {
@@ -30,33 +32,33 @@ public class ClienteEureka : IDisposable
             // Una cuenta con muchos movimientos supera los 64 KB por defecto.
             MaxReceivedMessageSize = 10 * 1024 * 1024
         };
-        _fabrica = new ChannelFactory<IWSEureka>(binding, new EndpointAddress(url));
+        _fabrica = new ChannelFactory<WSEureka>(binding, new EndpointAddress(url));
         UrlServidor = url;
     }
 
     public string UrlServidor { get; }
 
     public Task<Empleado?> LoginAsync(string usuario, string clave) =>
-        InvocarAsync(c => c.LoginAsync(usuario, clave));
+        InvocarAsync<Empleado?>(async c => await c.loginAsync(usuario, clave));
 
     public Task<Cuenta> ConsultarCuentaAsync(string cuenta) =>
-        InvocarAsync(c => c.ConsultarCuentaAsync(cuenta));
+        InvocarAsync(c => c.consultarCuentaAsync(cuenta));
 
     public async Task<Movimiento[]> TraerMovimientosAsync(string cuenta) =>
-        await InvocarAsync(c => c.TraerMovimientosAsync(cuenta)) ?? Array.Empty<Movimiento>();
+        await InvocarAsync(c => c.traerMovimientosAsync(cuenta)) ?? Array.Empty<Movimiento>();
 
     /// <summary>Registra la operación y devuelve el nuevo saldo (de la cuenta de origen en transferencias).</summary>
     public Task<decimal> RegistrarAsync(TipoOperacion tipo, string cuenta, string? destino, decimal importe, string codEmpleado) =>
         tipo switch
         {
-            TipoOperacion.Deposito => InvocarAsync(c => c.RegistrarDepositoAsync(cuenta, importe, codEmpleado)),
-            TipoOperacion.Retiro => InvocarAsync(c => c.RegistrarRetiroAsync(cuenta, importe, codEmpleado)),
-            _ => InvocarAsync(c => c.RegistrarTransferenciaAsync(cuenta, destino ?? "", importe, codEmpleado))
+            TipoOperacion.Deposito => InvocarAsync(c => c.registrarDepositoAsync(cuenta, importe, codEmpleado)),
+            TipoOperacion.Retiro => InvocarAsync(c => c.registrarRetiroAsync(cuenta, importe, codEmpleado)),
+            _ => InvocarAsync(c => c.registrarTransferenciaAsync(cuenta, destino ?? "", importe, codEmpleado))
         };
 
-    private async Task<T> InvocarAsync<T>(Func<IWSEureka, Task<T>> llamada)
+    private async Task<T> InvocarAsync<T>(Func<WSEureka, Task<T>> llamada)
     {
-        IWSEureka canal = _fabrica.CreateChannel();
+        WSEureka canal = _fabrica.CreateChannel();
         var comunicacion = (ICommunicationObject)canal;
         try
         {

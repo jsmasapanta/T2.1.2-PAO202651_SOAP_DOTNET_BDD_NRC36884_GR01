@@ -25,18 +25,27 @@ package "ec.edu.monster.servicio" {
   class ClienteEureka <<Singleton>> {
     - {static} _instancia : Lazy<ClienteEureka>
     + {static} Instancia : ClienteEureka
-    - _fabrica : ChannelFactory<IWSEureka>
+    - _fabrica : ChannelFactory<WSEureka>
     - ClienteEureka()
     - Invocar<T>(llamada) : T
   }
-  interface IWSEureka <<copia del contrato>>
   class ErrorServicioException
+
+  package "WSEurekaReference (archivo GENERADO desde el WSDL)" #E3EEF8 {
+    interface WSEureka <<contrato>> {
+      + login(usuario, clave) : Empleado
+      + consultarCuenta(cuenta) : Cuenta
+      + traerMovimientos(cuenta) : Movimiento[]
+      + registrarDeposito / Retiro / Transferencia(...) : decimal
+    }
+    class Empleado
+    class Cuenta
+    class Movimiento
+    class ErrorServicio
+  }
 }
 
 package "ec.edu.monster.modelo" {
-  class Empleado
-  class Cuenta
-  class Movimiento
   enum TipoOperacion {
     Deposito
     Retiro
@@ -51,15 +60,18 @@ FormPrincipal *-- PanelOperacion
 PanelMovimientos --> ControladorEureka
 PanelOperacion --> ControladorEureka
 ControladorEureka --> ClienteEureka : Instancia
-ClienteEureka ..> IWSEureka : ChannelFactory
+ClienteEureka ..> WSEureka : ChannelFactory
 ClienteEureka ..> ErrorServicioException
 ControladorEureka ..> Cuenta
 ControladorEureka ..> Movimiento
 ControladorEureka ..> TipoOperacion
 
 note bottom of ClienteEureka
+  Sin reglas del banco: las valida el servidor
+  y su mensaje llega en el SOAP Fault (ErrorServicio).
   Consola: igual (VistaConsola + ControladorConsola).
   Web: ClienteEureka con AddSingleton en Program.cs.
-  Móvil: ClienteSoap.Instancia y ControladorEureka.Instancia.
+  Móvil: ClienteSoap.Instancia (mismo proxy, dotnet-svcutil)
+  y ControladorEureka.Instancia.
 end note
 @enduml

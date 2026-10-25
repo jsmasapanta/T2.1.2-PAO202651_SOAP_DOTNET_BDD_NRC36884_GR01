@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using ec.edu.monster.modelo;
+using ec.edu.monster.servicio;
 
 namespace ec.edu.monster.vista
 {
@@ -116,32 +117,34 @@ namespace ec.edu.monster.vista
             }
         }
 
-        /// <summary>Pide un número de cuenta de 8 dígitos.</summary>
+        /// <summary>Pide un número de cuenta. Si no tiene el formato correcto lo dirá el servidor.</summary>
         public string PedirCuenta(string etiqueta)
         {
             while (true)
             {
-                string cuenta = PedirTexto(etiqueta + " (8 dígitos)").Trim();
-                if (cuenta.Length == 8 && cuenta.All(char.IsDigit))
+                string cuenta = PedirTexto(etiqueta).Trim();
+                if (cuenta.Length > 0)
                 {
                     return cuenta;
                 }
-                MostrarError("La cuenta debe tener 8 dígitos (ejemplo: 00100001).");
+                MostrarError("Escriba el número de cuenta.");
             }
         }
 
-        /// <summary>Pide un importe positivo con hasta 2 decimales (punto o coma).</summary>
+        /// <summary>
+        /// Pide el importe (punto o coma decimal). Solo se comprueba que sea un número, porque el servicio
+        /// recibe un decimal; si es cero, negativo o tiene más de 2 decimales lo rechaza el servidor.
+        /// </summary>
         public decimal PedirImporte(string etiqueta)
         {
             while (true)
             {
                 string entrada = PedirTexto(etiqueta).Trim().Replace(',', '.');
-                if (decimal.TryParse(entrada, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out decimal importe)
-                    && importe > 0 && decimal.Round(importe, 2) == importe)
+                if (decimal.TryParse(entrada, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal importe))
                 {
                     return importe;
                 }
-                MostrarError("Ingrese un importe mayor que cero con hasta 2 decimales (ejemplo: 150 o 75.50).");
+                MostrarError("Escriba el importe con números (ejemplo: 150 o 75.50).");
             }
         }
 
@@ -170,8 +173,8 @@ namespace ec.edu.monster.vista
             foreach (Movimiento m in movimientos)
             {
                 Console.Write("  {0,4}  {1,-16}  {2,-20}  ", m.Numero, m.Fecha.ToString("dd/MM/yyyy HH:mm"), Recortar(m.Tipo, 20));
-                Console.ForegroundColor = m.EsIngreso ? ConsoleColor.Green : ConsoleColor.Red;
-                Console.Write("{0,14}", (m.EsIngreso ? "+" : "-") + Dinero(m.Importe));
+                Console.ForegroundColor = EsIngreso(m) ? ConsoleColor.Green : ConsoleColor.Red;
+                Console.Write("{0,14}", (EsIngreso(m) ? "+" : "-") + Dinero(m.Importe));
                 Console.ResetColor();
                 Console.WriteLine("  {0,-8}  {1,-8}", m.Empleado, m.CuentaReferencia);
             }
@@ -180,6 +183,9 @@ namespace ec.edu.monster.vista
                 Console.WriteLine("  (la cuenta no tiene movimientos)");
             }
         }
+
+        /// <summary>La acción (INGRESO o SALIDA) viene del servidor, de la tabla TipoMovimiento.</summary>
+        private static bool EsIngreso(Movimiento m) => m.Accion == "INGRESO";
 
         public void MostrarOperacionExitosa(TipoOperacion tipo, string cuenta, string destino, decimal importe, decimal saldo)
         {

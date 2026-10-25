@@ -104,9 +104,9 @@ namespace ec.edu.monster.vista
         private async void Consultar()
         {
             string cuenta = _txtCuenta.Text.Trim();
-            if (!ControladorEureka.EsCuentaValida(cuenta))
+            if (cuenta.Length == 0)
             {
-                _lblMensaje.Text = "La cuenta debe tener 8 dígitos (ejemplo: 00100001).";
+                _lblMensaje.Text = "Escriba el número de cuenta.";
                 return;
             }
 
@@ -145,8 +145,8 @@ namespace ec.edu.monster.vista
             foreach (Movimiento m in movimientos)
             {
                 int fila = _tabla.Rows.Add(m.Numero, m.Fecha.ToString("dd/MM/yyyy HH:mm"), m.Tipo, m.Accion,
-                    (m.EsIngreso ? "+" : "−") + ControladorEureka.Dinero(m.Importe), m.Empleado, m.CuentaReferencia);
-                _tabla.Rows[fila].Cells["Importe"].Style.ForeColor = m.EsIngreso ? Tema.Ingreso : Tema.Salida;
+                    (ControladorEureka.EsIngreso(m) ? "+" : "−") + ControladorEureka.Dinero(m.Importe), m.Empleado, m.CuentaReferencia);
+                _tabla.Rows[fila].Cells["Importe"].Style.ForeColor = ControladorEureka.EsIngreso(m) ? Tema.Ingreso : Tema.Salida;
             }
             if (movimientos.Length == 0)
             {

@@ -1,4 +1,5 @@
 using System.Globalization;
+using ec.edu.monster.servicio;
 
 namespace ec.edu.monster.modelo;
 
@@ -49,17 +50,16 @@ public static class Formato
         _ => "Transferencia"
     };
 
-    public static bool EsCuentaValida(string? cuenta)
-    {
-        string limpia = (cuenta ?? "").Trim();
-        return limpia.Length == 8 && limpia.All(char.IsDigit);
-    }
-
-    /// <summary>Acepta punto o coma decimal; exige un valor mayor que cero con hasta 2 decimales.</summary>
+    /// <summary>
+    /// Convierte el texto a número (punto o coma decimal). Solo comprueba que sea un número, porque el
+    /// servicio recibe un decimal; si es cero, negativo o tiene más de 2 decimales lo rechaza el servidor.
+    /// </summary>
     public static bool IntentarLeerImporte(string? texto, out decimal importe)
     {
         string normalizado = (texto ?? "").Trim().Replace(',', '.');
-        return decimal.TryParse(normalizado, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out importe)
-               && importe > 0 && decimal.Round(importe, 2) == importe;
+        return decimal.TryParse(normalizado, NumberStyles.Number, CultureInfo.InvariantCulture, out importe);
     }
+
+    /// <summary>La acción (INGRESO o SALIDA) viene del servidor, de la tabla TipoMovimiento.</summary>
+    public static bool EsIngreso(Movimiento m) => m.Accion == "INGRESO";
 }

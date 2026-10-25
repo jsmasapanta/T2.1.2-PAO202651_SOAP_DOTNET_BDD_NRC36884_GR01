@@ -27,13 +27,8 @@ public class BancoController : Controller
     {
         PrepararVista("Movimientos");
         var modelo = new MovimientosViewModel { Cuenta = cuenta?.Trim() };
-        if (cuenta == null)
+        if (string.IsNullOrWhiteSpace(cuenta))
         {
-            return View(modelo);
-        }
-        if (!Formato.EsCuentaValida(cuenta))
-        {
-            modelo.Error = "La cuenta debe tener 8 dígitos (ejemplo: 00100001).";
             return View(modelo);
         }
 
@@ -75,14 +70,11 @@ public class BancoController : Controller
         };
         bool esTransferencia = modelo.Tipo == TipoOperacion.Transferencia;
 
-        if (!Formato.EsCuentaValida(modelo.Cuenta))
-            modelo.Error = "La cuenta debe tener 8 dígitos (ejemplo: 00100001).";
-        else if (esTransferencia && !Formato.EsCuentaValida(modelo.CuentaDestino))
-            modelo.Error = "La cuenta de destino debe tener 8 dígitos.";
-        else if (esTransferencia && modelo.Cuenta == modelo.CuentaDestino)
-            modelo.Error = "La cuenta de origen y la de destino deben ser distintas.";
+        // Las reglas (formato de cuenta, importe, cuentas distintas, saldo) las valida el servidor.
+        if (string.IsNullOrEmpty(modelo.Cuenta) || (esTransferencia && string.IsNullOrEmpty(modelo.CuentaDestino)))
+            modelo.Error = "Complete los números de cuenta.";
         else if (!Formato.IntentarLeerImporte(modelo.Importe, out _))
-            modelo.Error = "Ingrese un importe mayor que cero con hasta 2 decimales (ejemplo: 150 o 75.50).";
+            modelo.Error = "Escriba el importe con números (ejemplo: 150 o 75.50).";
         if (modelo.Error != null)
         {
             return View("Operacion", modelo);

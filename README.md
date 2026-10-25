@@ -99,10 +99,14 @@ public sealed class ConexionBD
 
 | Cliente | modelo | vista | controlador |
 |---|---|---|---|
-| CLICON | `Modelos.cs` | `VistaConsola` | `ControladorConsola` |
-| CLIESC | `Modelos.cs` | `FormLogin`, `FormPrincipal`, `PanelMovimientos`, `PanelOperacion` | `ControladorEureka` |
-| CLIWEB | `Modelos.cs`, `ViewModels.cs` | `vista/Acceso/Login`, `vista/Banco/Movimientos`, `vista/Banco/Operacion` | `AccesoController`, `BancoController` |
-| CLIMOV | `Modelos.cs` | `LoginPage`, `MenuPage`, `MovimientosPage`, `OperacionPage` | `ControladorEureka` |
+| CLICON | `TipoOperacion` | `VistaConsola` | `ControladorConsola` |
+| CLIESC | `TipoOperacion` | `FormLogin`, `FormPrincipal`, `PanelMovimientos`, `PanelOperacion` | `ControladorEureka` |
+| CLIWEB | `TipoOperacion`, `ViewModels.cs` | `vista/Acceso/Login`, `vista/Banco/Movimientos`, `vista/Banco/Operacion` | `AccesoController`, `BancoController` |
+| CLIMOV | `TipoOperacion` | `LoginPage`, `MenuPage`, `MovimientosPage`, `OperacionPage` | `ControladorEureka` |
+
+**Los clientes solo presentan; todo viene del servicio:**
+- **Datos y contrato:** `Empleado`, `Cuenta`, `Movimiento`, `ErrorServicio` y la interfaz `WSEureka` no se escriben en los clientes. Están en `servicio/WSEurekaReference.cs`, **generado desde el WSDL** (como *Agregar referencia de servicio*): con `SvcUtil.exe` en consola y escritorio, y con `dotnet-svcutil` en web y móvil. Si el servidor cambia, se vuelve a generar (el comando está al inicio de cada archivo).
+- **Reglas del banco:** el formato de la cuenta, el importe (mayor que cero, 2 decimales), las cuentas distintas, el saldo, la moneda y el estado los valida **solo el servidor**. El cliente solo comprueba que los campos no estén vacíos y que el importe sea un número (el contrato recibe un `decimal`), y muestra el mensaje del SOAP Fault.
 
 En la web las vistas también están en `ec/edu/monster/vista` (se configuró `RazorViewEngineOptions` en `Program.cs`).
 
@@ -196,7 +200,7 @@ El script crea el sitio **EUREKA** en el puerto **8087**, abre el firewall y mue
 | 2 | Login incorrecto | monster / otra | "Usuario o clave incorrectos" (3 intentos) |
 | 3 | Consultar cuenta | 00100001 | Saldo 6,900.00 y 7 movimientos |
 | 4 | Cuenta inexistente | 99999999 | "La cuenta 99999999 no existe." |
-| 5 | Formato de cuenta | 123 | "La cuenta debe tener 8 dígitos" (no llama al servidor) |
+| 5 | Formato de cuenta | 123 | "La cuenta debe tener 8 dígitos" (lo responde el servidor) |
 | 6 | Depósito | 00100001, 100.50 | Saldo 7,000.50, movimiento 003 |
 | 7 | Retiro | 00100001, 0.50 | Saldo 7,000.00, movimiento 004 |
 | 8 | Saldo insuficiente | 00100001, 50000 | "Saldo insuficiente…" |

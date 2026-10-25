@@ -55,25 +55,18 @@ namespace ec.edu.monster.controlador
             }
         }
 
-        /// <summary>Valida que la cuenta tenga 8 dígitos antes de llamar al servidor.</summary>
-        public static bool EsCuentaValida(string cuenta)
-        {
-            string limpia = (cuenta ?? string.Empty).Trim();
-            if (limpia.Length != 8) return false;
-            foreach (char c in limpia)
-            {
-                if (!char.IsDigit(c)) return false;
-            }
-            return true;
-        }
-
-        /// <summary>Acepta punto o coma decimal; exige un valor mayor que cero con hasta 2 decimales.</summary>
+        /// <summary>
+        /// Convierte el texto a número (punto o coma decimal). Solo comprueba que sea un número, porque el
+        /// servicio recibe un decimal; si es cero, negativo o tiene más de 2 decimales lo rechaza el servidor.
+        /// </summary>
         public static bool IntentarLeerImporte(string texto, out decimal importe)
         {
             string normalizado = (texto ?? string.Empty).Trim().Replace(',', '.');
-            return decimal.TryParse(normalizado, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out importe)
-                && importe > 0 && decimal.Round(importe, 2) == importe;
+            return decimal.TryParse(normalizado, NumberStyles.Number, CultureInfo.InvariantCulture, out importe);
         }
+
+        /// <summary>La acción (INGRESO o SALIDA) viene del servidor, de la tabla TipoMovimiento.</summary>
+        public static bool EsIngreso(Movimiento m) => m.Accion == "INGRESO";
 
         /// <summary>Importe con separador de miles y 2 decimales: 6,900.00</summary>
         public static string Dinero(decimal importe)

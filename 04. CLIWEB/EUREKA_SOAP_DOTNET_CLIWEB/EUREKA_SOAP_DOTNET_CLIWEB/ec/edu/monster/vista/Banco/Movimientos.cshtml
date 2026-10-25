@@ -44,7 +44,7 @@
                             <td>@m.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
                             <td>@m.Tipo</td>
                             <td>@m.Accion</td>
-                            <td class="derecha @(m.EsIngreso ? "ingreso" : "salida")">@(m.EsIngreso ? "+" : "−")@Formato.Dinero(m.Importe)</td>
+                            <td class="derecha @(Formato.EsIngreso(m) ? "ingreso" : "salida")">@(Formato.EsIngreso(m) ? "+" : "−")@Formato.Dinero(m.Importe)</td>
                             <td>@m.Empleado</td>
                             <td>@m.CuentaReferencia</td>
                         </tr>

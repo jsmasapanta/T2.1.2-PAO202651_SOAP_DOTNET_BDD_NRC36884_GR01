@@ -6,7 +6,8 @@ namespace ec.edu.monster.controlador;
 
 /// <summary>
 /// Intermediario entre las pantallas (vista) y el servicio SOAP.
-/// Guarda el empleado de la sesión, valida la entrada y lleva el registro de operaciones de la sesión.
+/// Guarda el empleado de la sesión y lleva el registro de operaciones de la sesión.
+/// No aplica reglas del banco: las valida el servidor y su mensaje llega como ErrorServicioException.
 /// Patrón Singleton: todas las pantallas comparten ControladorEureka.Instancia.
 /// </summary>
 public sealed class ControladorEureka
@@ -50,10 +51,10 @@ public sealed class ControladorEureka
         _operacionesSesion.Clear();
     }
 
-    public async Task<(Cuenta Cuenta, List<Movimiento> Movimientos)> ConsultarAsync(string cuenta)
+    public async Task<(Cuenta Cuenta, Movimiento[] Movimientos)> ConsultarAsync(string cuenta)
     {
         Cuenta datos = await _cliente.ConsultarCuentaAsync(cuenta);
-        List<Movimiento> movimientos = await _cliente.TraerMovimientosAsync(cuenta);
+        Movimiento[] movimientos = await _cliente.TraerMovimientosAsync(cuenta);
         return (datos, movimientos);
     }
 
@@ -76,21 +77,20 @@ public sealed class ControladorEureka
         return saldo;
     }
 
-    public static bool EsCuentaValida(string? cuenta)
-    {
-        string limpia = (cuenta ?? "").Trim();
-        return limpia.Length == 8 && limpia.All(char.IsDigit);
-    }
-
-    /// <summary>Acepta punto o coma decimal ("75.5" o "75,5"). Devuelve null si no es un importe válido.</summary>
+    /// <summary>
+    /// Convierte el texto a número ("75.5" o "75,5"); null si no es un número. Solo eso: si el importe es cero,
+    /// negativo o tiene más de 2 decimales lo rechaza el servidor.
+    /// </summary>
     public static decimal? LeerImporte(string? texto)
     {
         string limpio = (texto ?? "").Trim().Replace(',', '.');
-        return decimal.TryParse(limpio, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out decimal importe)
-               && importe > 0 && decimal.Round(importe, 2) == importe
+        return decimal.TryParse(limpio, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal importe)
             ? importe
             : null;
     }
+
+    /// <summary>La acción (INGRESO o SALIDA) viene del servidor, de la tabla TipoMovimiento.</summary>
+    public static bool EsIngreso(Movimiento m) => m.Accion == "INGRESO";
 
     /// <summary>Importe con separador de miles y 2 decimales: 6,900.00</summary>
     public static string Dinero(decimal importe) => importe.ToString("#,##0.00", CultureInfo.InvariantCulture);
