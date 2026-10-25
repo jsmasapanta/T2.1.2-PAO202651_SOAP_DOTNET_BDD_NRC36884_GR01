@@ -15,7 +15,7 @@ namespace ec.edu.monster.ws
     /// y permite probarlas con un formulario. Usa la misma lógica (EurekaServicio) y la misma base de datos.
     /// </summary>
     [WebService(Name = "WSEureka", Namespace = Constantes.NamespaceServicio,
-        Description = "EurekaBank · SOAP .NET con SQL Server. Usuario de prueba: monster / monster (código de empleado 0012). Cuentas de ejemplo: 00100001, 00200001, 00200002.")]
+        Description = "EurekaBank · SOAP .NET con SQL Server. Usuario de prueba: monster / monster69 (código de empleado 0012). Cuentas de ejemplo: 00100001, 00200001, 00200002.")]
     [WebServiceBinding(ConformsTo = WsiProfiles.BasicProfile1_1)]
     public class WSEurekaAsmx : WebService
     {
